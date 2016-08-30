@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -28,8 +28,7 @@
 #include <math.h>
 #include <string.h>
 #include <map>
-#include <fstream>
-#include <iostream>
+
 
 #ifndef SETTINGS_H
 	#define SETTINGS_H
@@ -46,7 +45,6 @@ private:
 	string profileName;		/* filename (and path) of the file that contains extra attributes */
 	string resDir;			/* name of the directory that will store the results of the simulation */
 	string trcDir;			/* name of the directory that stores the contact trace files. */
-	string customTrcPath;
 	bool includedProfile;
 	bool modifiedResDir;
 	bool modifiedTrcDir;
@@ -77,8 +75,6 @@ private:
 	map<string,int> DMnames;
 	map<string,int> OutputTypenames;
 	map<string,int> TrafficTypenames;
-	
-	void processCustomtrc(void);
 
 public:
 	UserInteraction();
@@ -86,7 +82,7 @@ public:
 
 	Settings *getSettings(int argc, char *argv[]);
 
-	void ParseArgs(char *option, char *value);
+	void ParseArgs(char *com, char *option, char *value);
 	bool isNumber(const string& s);
 
 	int convertTraceToID(const string& s);

@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -989,14 +989,13 @@ LCandFS::~LCandFS(void)
 	return;
 }
 
-
 BubbleSummary::BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, bool *LC, double LR, double GR, int PID): Packet(Time, PID)
 {
 	this->Type = BUBBLE_SUMMARY;
 	this->Pktsize = 30;
 	this->numPackets = numPkts;
 	this->summaryVector = sumVec;
-	this->localCommunity = LC;
+	this->localCommunity = LC; 
 	this->localRank = LR;
 	this->globalRank = GR;
 
@@ -1005,6 +1004,29 @@ BubbleSummary::BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, b
 
 
 BubbleSummary::~BubbleSummary(void)
+{
+	delete HD;
+	free(this->summaryVector);
+	free(this->localCommunity);
+	return;
+}
+
+HCBFSummary::HCBFSummary(double Time, int numPkts, struct PktDest* sumVec, bool *LC, double LR, double GUR,double LUR, int PID): Packet(Time, PID)
+{
+	this->Type = BUBBLE_SUMMARY;
+	this->Pktsize = 30;
+	this->numPackets = numPkts;
+	this->summaryVector = sumVec; 
+	this->localCommunity = LC;
+	this->localRank = LR;
+	this->globalUniqueRank = GUR;
+	this->localUniqueRank=LUR;
+
+	return;
+}
+
+
+HCBFSummary::~HCBFSummary(void)
 {
 	delete HD;
 	free(this->summaryVector);

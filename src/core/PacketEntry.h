@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -118,6 +118,17 @@ public:
 	double GetMaxUtil(string utilityMetric);
 	void UpdateMaxUtil(string utilityMetric,double val);
 	void freeMem(void);
+
+	void setCBC(int cbc, int node);
+
+	int CBC;
+	int CBC_node;
+	int NCF;
+	int NCF_node;
+	int UI;
+	int UI_node;
+	int LP;
+	int LP_node;
 	
 private:
 	void init(int ID,int Dest,int Src,int Itime,int hops,int prev,double CrtTime);

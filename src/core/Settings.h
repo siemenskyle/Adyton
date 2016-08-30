@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -53,7 +53,6 @@ class Settings
 {
 protected:
 	string traceDirectory;
-	string trcOriginalFilename;
 	int ContactTrace;
 	int RT;
 	int CongestionControlMechanism;
@@ -116,7 +115,6 @@ public:
 	void setSeed(int S);
 	void setResultsDirectory(string resDir);
 	void setBatchmode(bool val);
-	void setCustomTrcInfo(string trcIDname, string contactsFile, string presenceFile, int nodesNum, int actNodes, int contLines, double contDuration, double scan, string prTime, string originalFilename);
 	void lastCheck();
 
 	void setGUI(bool status){this->GUI=status;};
@@ -157,7 +155,7 @@ public:
 	void printOutputType(int type);
 	void printTrafficType(int type);
 	void LoadProfile(string Fname); /* this method reads the file contents and fills the ProfileAttributes table */
-	string GetProfileAttribute(string AttributeName); /* this method returns the value of a ProfileAttribute - if the attribute does not exist then NULL is returned */
+	string GetProfileAttribute(string AttributeName); /* this method returns the value of a ProfileAttribute - if the attribute does not exist then none is returned */
 	void PrintProfile(void);
 	bool ProfileExists(void);
 	double getTraceDuration(void){return this->Duration;};

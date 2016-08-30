@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -460,7 +460,6 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 	encLocalRank = ((BubbleSummary *) pkt)->getLocalRank();
 	encGlobalRank = ((BubbleSummary *) pkt)->getGlobalRank();
 
-
 	/* Get my bubble information */
 	myLocalCommunity = labeling->cloneLocalCommunity(CurrentTime);
 	myLocalRank = ranking->getLocalRank(CurrentTime, myLocalCommunity);
@@ -520,6 +519,7 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 
 		if(!encBetterCarrier)
 		{
+			Stat->incrForward++;
 			/* Add the packet in the request vector */
 			reqPos++;
 
@@ -529,6 +529,10 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 			
 			myRequestMarks=(bool *) realloc(myRequestMarks, (reqPos + 1)*sizeof(bool));
 			myRequestMarks[reqPos] = IamBetterGlobally;
+		}
+		else
+		{
+			Stat->incrNotForward++;
 		}
 	}
 	free(myLocalCommunity);
@@ -665,4 +669,9 @@ void BubbleRap::SendPacket(double STime, int pktID,int nHop,int RepValue)
 	}
 
 	return;
+}
+int BubbleRap::amountOfMyneighbors(void)
+{
+	return labeling->getCommunityMembersAmount();
+
 }

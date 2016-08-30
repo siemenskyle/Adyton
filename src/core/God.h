@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -36,6 +36,11 @@
 #ifndef SETTINGS_H
 	#define SETTINGS_H
 	#include "Settings.h"
+#endif
+
+#ifndef PACKET_ENTRY_H
+	#define PACKET_ENTRY_H
+	#include "PacketEntry.h"
 #endif
 
 
@@ -143,5 +148,26 @@ public:
 	void deleteAllReplicas(int pktID);
 	bool optimizeDelay();
 	bool optimizeForwards();
+	int  getNeighborAmount(int NID);
+
+
+
+	void SetMaxUI(int NID,int maxui,int nodeWithMaxUI);
+	int  getMaxUI(int NID);
+	int  getMaxUI_node(int NID);
+	void SetMaxLP(int NID,int maxlp,int nodeWithMaxLP);
+	int  getMaxLP(int NID);
+	int  getMaxLP_node(int NID);
+	void SetMaxCBC(int NID,int maxCBC,int nodeWithMaxCBC);
+	int  getMaxCBC(int NID);
+	bool *getCommunityFromCertainNode(int NID);
+	void SetMaxNCF(int NID,int maxNCF,int nodeWithMaxNCF);
+	int  getMaxNCF(int NID);
+	Node *getNode(int NID){return (*SimulationNodes)[NID];}; 
+	int getCBC(bool *encLocalCommunity, bool *myLocalCommunity, double currentTime);
+	int getNCF(bool *DestCommunity, int NID);
+
+	PacketEntry* getPacketInfo(int NID,int pktID);
+
 };
 

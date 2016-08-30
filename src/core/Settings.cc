@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -48,7 +48,6 @@ Settings::Settings()
 	setSeed(time(NULL));
 	setResultsDirectory("../res/");
 	setBatchmode(false);
-	trcOriginalFilename="";
 
 	this->ProfileName = "none";
 
@@ -291,7 +290,7 @@ void Settings::setContactTrace(int TRC)
 			this->NN = 536;
 			this->ActiveNodes = 536;
 			this->Lines = 8571225;
-			this->Duration = 2070953.0;
+			this->Duration = 2070953;
 			this->scanningInterval = 10.0;
 			this->processingTime="3.5-4 hours";
 			break;
@@ -317,7 +316,7 @@ void Settings::setContactTrace(int TRC)
 			this->NN = 242;
 			this->ActiveNodes = 242;
 			this->Lines = 77521;
-			this->Duration = 116920.0;
+			this->Duration = 116920;
 			this->scanningInterval = 20.0;
 			this->processingTime="40-50 minutes";
 			break;
@@ -372,7 +371,7 @@ void Settings::setContactTrace(int TRC)
 			this->Duration = 1209600.0;
 			this->scanningInterval = 1.0;
 			this->processingTime="30-35 minutes";
-			break;
+			break; 
 		}
 		case DEBUG_TR:
 		{
@@ -387,19 +386,6 @@ void Settings::setContactTrace(int TRC)
 			this->processingTime="1 second";
 			break;
 		}
-		case CUSTOM_TR:
-		{
-			this->tracename.assign("custom");
-			this->contactFilename = "";
-			this->presenceFilename = "";
-			this->NN = 0;
-			this->ActiveNodes = 0;
-			this->Lines = 0;
-			this->Duration = 0.0;
-			this->scanningInterval = 0.0;
-			this->processingTime="";
-			break;
-		}
 		default:
 		{
 			printf("Error! Unknown contact trace identifier (%d)\nExiting...\n", TRC);
@@ -410,20 +396,6 @@ void Settings::setContactTrace(int TRC)
 	return;
 }
 
-void Settings::setCustomTrcInfo(string trcIDname, string contactsFile, string presenceFile, int nodesNum, int actNodes, int contLines, double contDuration, double scan, string prTime, string originalFilename)
-{
-	tracename.assign(trcIDname);
-	contactFilename.assign(contactsFile);
-	presenceFilename.assign(presenceFile);
-	NN = nodesNum;
-	ActiveNodes = actNodes;
-	Lines = contLines;
-	Duration = contDuration;
-	scanningInterval = scan;
-	processingTime.assign(prTime);
-	trcOriginalFilename.assign(originalFilename);
-	return;
-}
 
 void Settings::setRT(int Rout)
 {
@@ -434,10 +406,36 @@ void Settings::setRT(int Rout)
 	this->RT = Rout;
 	switch(this->RT)
 	{
+
 		case DIRECT_RT:
 		{
 			this->RTname.assign("Direct");
 			break;
+		}
+		case FLOODING_RT:
+		{
+			this->RTname.assign("flooding");
+			break;		
+		}
+		case HCBF_RT:
+		{
+			suffix = "";
+
+			if(this->ProfileExists())
+			{
+				if((profileAttribute = this->GetProfileAttribute("kappa")) != "none")
+				{
+					suffix += ".kappa" + profileAttribute;
+				}
+
+				if((profileAttribute = this->GetProfileAttribute("familiarSetThreshold")) != "none")
+				{
+					suffix += ".familiarSetThreshold" + profileAttribute;
+				}
+			}
+
+			this->RTname.assign("hcbf" + suffix);
+			break;	
 		}
 		case EPIDEMIC_RT:
 		{
@@ -502,28 +500,6 @@ void Settings::setRT(int Rout)
 		case LSFSF_RT:
 		{
 			this->RTname.assign("LSF-SprayFocus");
-			break;
-		}
-		case CNF_RT:
-		{
-			string UtilityType;
-			if(this->ProfileExists() && (UtilityType=this->GetProfileAttribute("Utility")) != "none")
-			{
-				//remove all whitespaces
-				UtilityType.erase( std::remove_if( UtilityType.begin(), UtilityType.end(), ::isspace ), UtilityType.end() );
-				if(UtilityType == "LTS" || UtilityType == "DestEnc" || UtilityType == "Enc" || UtilityType == "AMT" || UtilityType == "AIT" || UtilityType == "SPM" || UtilityType == "Bet" || UtilityType == "Sim" || UtilityType == "LastContact" || UtilityType == "Prophet")
-				{
-					this->RTname.assign("CnF." + UtilityType);
-				}
-				else
-				{
-					this->RTname.assign("CnF.LTS");
-				}
-			}
-			else
-			{
-				this->RTname.assign("CnF.LTS");
-			}
 			break;
 		}
 		case CNR_RT:
@@ -632,7 +608,7 @@ void Settings::setRT(int Rout)
 		}
 		default:
 		{
-			printf("Error! Unknown routing protocol identifier (%d)\nExiting...\n", Rout);
+			printf("1Error! Unknown routing protocol identifier (%d)\nExiting...\n", Rout);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -844,13 +820,13 @@ int Settings::askToImportTrace()
 
 	if(decision.at(0) == 'y')
 	{
-		status = system(("cd ../utils/trace-processing && chmod +x ./caravida.sh && ./caravida.sh " + tracename).c_str());
+		status = system(("cd ../utils/trace-processing && chmod +x ./import-dataset.sh && ./import-dataset.sh " + tracename).c_str());
 	}
 	else
 	{
 		printf("\nYou can import the %s contact trace any time by executing the following commands:\n", tracename.c_str());
 		printf("$ cd ../utils/trace-processing\n");
-		printf("$ ./caravida.sh %s\n\n", tracename.c_str());
+		printf("$ ./import-dataset.sh %s\n\n", tracename.c_str());
 	}
 
 	return status;
@@ -862,23 +838,15 @@ void Settings::lastCheck()
 	/* Make sure that the requested contact trace has been imported */
 	if((access(contactFilename.c_str(), F_OK) != 0) || (access(presenceFilename.c_str(), F_OK) != 0))
 	{
-		if(ContactTrace == CUSTOM_TR)
+		printf("[Error]: The %s contact trace has not been imported in the simulator\n", tracename.c_str());
+
+		if(askToImportTrace() != 0)
 		{
-			printf("[Error] The \"%s\" contact trace cannot be imported in the simulator\n", tracename.c_str());
 			exit(EXIT_FAILURE);
 		}
 		else
 		{
-			printf("[Error] The \"%s\" contact trace has not been imported in the simulator\n", tracename.c_str());
-
-			if(askToImportTrace() != 0)
-			{
-				exit(EXIT_FAILURE);
-			}
-			else
-			{
-				printf("\n");
-			}
+			printf("\n");
 		}
 	}
 
@@ -958,17 +926,8 @@ void Settings::lastCheck()
 void Settings::printSettings()
 {
 	printf("Contact Trace: %s\n", this->tracename.c_str());
-	if(ContactTrace == CUSTOM_TR)
-	{
-// 		printf("Contact Filename: \"%s\" (%ld lines) [extracted from %s]\n", contactFilename.c_str(), Lines, trcOriginalFilename.c_str());
-// 		printf("Presence Filename: \"%s\" [extracted from %s]\n", presenceFilename.c_str(),trcOriginalFilename.c_str());
-		printf("Contact Filename: \"%s\" (contacts: %ld lines)\n", trcOriginalFilename.c_str(), Lines);
-	}
-	else
-	{
-		printf("Contact Filename: \"%s\" (%ld lines)\n", this->contactFilename.c_str(), this->Lines);
-		printf("Presence Filename: \"%s\"\n", this->presenceFilename.c_str());
-	}
+	printf("Contact Filename: \"%s\" (%ld lines)\n", this->contactFilename.c_str(), this->Lines);
+	printf("Presence Filename: \"%s\"\n", this->presenceFilename.c_str());
 	printf("Total Number of Nodes: %d\n", this->NN);
 	printf("Total Number of Active Nodes: %d\n", this->ActiveNodes);
 	printf("Duration: %f days\n", this->Duration / 86400.0);
@@ -1280,6 +1239,14 @@ bool Settings::isSingleCopy(void)
 		{
 			return true;
 		}
+		case FLOODING_RT:
+		{
+			return true;
+		}
+		case HCBF_RT:
+		{
+			return this->copyMode;
+		}
 		case EPIDEMIC_RT:
 		{
 			return false;
@@ -1325,10 +1292,6 @@ bool Settings::isSingleCopy(void)
 		{
 			return false;
 		}
-		case CNF_RT:
-		{
-			return true;
-		}
 		case CNR_RT:
 		{
 			return false;
@@ -1351,7 +1314,7 @@ bool Settings::isSingleCopy(void)
 		}
 		default:
 		{
-			printf("Error! Unknown routing protocol identifier (%d)\nExiting...\n", this->RT);
+			printf("2Error! Unknown routing protocol identifier (%d)\nExiting...\n", this->RT);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1363,6 +1326,14 @@ bool Settings::usesLimitedReplication(void)
 	switch(this->RT)
 	{
 		case DIRECT_RT:
+		{
+			return false;
+		}
+		case FLOODING_RT:
+		{
+			return false;
+		}
+		case HCBF_RT:
 		{
 			return false;
 		}
@@ -1406,10 +1377,6 @@ bool Settings::usesLimitedReplication(void)
 		{
 			return true;
 		}
-		case CNF_RT:
-		{
-			return false;
-		}
 		case CNR_RT:
 		{
 			return false;
@@ -1436,7 +1403,7 @@ bool Settings::usesLimitedReplication(void)
 		}
 		default:
 		{
-			printf("Error! Unknown routing protocol identifier (%d)\nExiting...\n", this->RT);
+			printf("3Error! Unknown routing protocol identifier (%d)\nExiting...\n", this->RT);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1515,7 +1482,6 @@ string Settings::GetProfileAttribute(string AttributeName)
 {
 	string val="none";
 	vector<ProfileAttribute>::iterator it;
-	
 	for(it = this->ProfileAttributes.begin() ; it != this->ProfileAttributes.end(); ++it)
 	{
 		if(it->Attribute == AttributeName)

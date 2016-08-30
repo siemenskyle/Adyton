@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -41,6 +41,7 @@ protected:
 	bool *currTimeSlot;
 	bool *currConnectedNodes;
 
+
 public:
 	CentralityApproximation(int myID, int totalNodes);
 	~CentralityApproximation();
@@ -49,4 +50,11 @@ public:
 	void updateTimeSlots(double currTime);
 	double getLocalRank(double currTime, bool *myLocalCommunity);
 	double getGlobalRank(double currTime);
+	int getContactsBetweenNodeCommunities(bool *destCommunity);
+	void resetEpoch(int epoch);
+	void incrementLocalPopularity(double currTime,int NID,bool *myCommunity);
+	double LocalPopularity;
+	double prevLP;
+	double currLP;
+	double getMobilityLocalRank(double currTime);
 };

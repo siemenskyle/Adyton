@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -45,6 +45,7 @@
 class Statistics
 {
 protected:
+	
 	int me;
 	double sumHops;
 	double sumDelay;
@@ -58,9 +59,11 @@ protected:
 	PacketPool *Pool;
 	int Forwards;
 
+
 	int ReplicasCreated;
 
 	int trafficType;
+
 
 	unsigned int timesAsRelayNode;
 	unsigned int handovers;
@@ -77,8 +80,21 @@ protected:
 	God *SimGod;
 
 public:
+	int forward_FUI;
+	int forward_FLP;
+	int forward_CBC;
+	int forward_NCF;
+	int forward_LUI;
+	int forward_LLP;
+	int pktadded;
+	int incrForward;
+	int incrNotForward;
+	int Dsent;
 	Statistics(PacketPool *P, int ID, double duration, int trafType, God *G);
 	~Statistics();
+	//
+	//int increnmentwastedforwarding;
+	void findWhichCauseMostForwarding(int forword);
 	void PrintResults(void);
 	void SetPktsForMe(int pkts);
 

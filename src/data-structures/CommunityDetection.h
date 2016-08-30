@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -26,10 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEFAULT_FAMILIAR_SET_THRESHOLD 388800
+#define DEFAULT_FAMILIAR_SET_THRESHOLD 38800
 #define DEFAULT_KAPPA 3
 
-
+ 
 class CommunityDetection
 {
 protected:
@@ -54,4 +54,11 @@ public:
 	void updateBubble(bool *encLocalCommunity, bool **encFamiliarSets, int encID, double currentTime);
 	bool *cloneLocalCommunity(double currentTime);
 	bool **cloneFamiliarSets(double currentTime);
+
+	int getContactsNumHelper(bool * destCommunity);
+	void BidirectionalCheck(bool *encCom,int encID);
+	int getCommunityMembersAmount(void);
+	bool *getCommunityFromFamiliarSet(int NodeID);
+
+	
 };

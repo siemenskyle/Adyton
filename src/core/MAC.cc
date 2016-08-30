@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -26,7 +26,7 @@
 	#define MAC_H
 	#include "MAC.h"
 #endif
-
+//#define MAC_DEBUG
 /* Constructor: Ideal
  * ------------------
  * This class implements a simple ideal MAC layer without bandwidth
@@ -51,9 +51,18 @@ Ideal::~Ideal()
  */
 int Ideal::BroadcastPkt(double Time,int Sender,int pktSize,int pktID)
 {
-	int NumberNodes=this->Connections->NumberOfN(Sender);
-	int *NList=this->Connections->GetN(Sender);
+	int NumberNodes=this->Connections->NumberOfN(Sender);//get the amount of neighbours
+	int *NList=this->Connections->GetN(Sender);//get the neighbours
 	Event *tmp=NULL;
+#ifdef MAC_DEBUG
+printf("the amount of neighbors is : %d , and they are : %d \n",NumberNodes,NList[0]);
+for(int i=0; i<NumberNodes;i++){
+
+printf(" %d ",NList[i]);
+
+};
+printf("\n");
+#endif
 	for(int i=0;i<NumberNodes;i++)
 	{
 		tmp=new Transmission(Time,Sender,NList[i],pktID);

@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -30,6 +30,15 @@
 #ifndef DIRECT_H
 	#define DIRECT_H
 	#include "Direct.h"
+#endif
+#ifndef HCBF_H
+	#define HCBF_H
+	#include "hcbf.h"
+#endif
+
+#ifndef FLOODING_H
+	#define FLOODING_H
+	#include "Flooding.h"
 #endif
 
 #ifndef EPIDEMIC_H

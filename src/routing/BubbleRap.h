@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -57,6 +57,8 @@ public:
 	virtual void ContactRemoved(double CTime, int NID);
 	virtual void Contact(double CTime, int NID);
 	virtual void recv(double rTime, int pktID);
+
+	virtual int amountOfMyneighbors(void);
 private:
 	void ReceptionData(Header *hd, Packet *pkt, int PID, double CurrentTime, int RealID);
 	void ReceptionReqLCandFS(Header *hd, Packet *pkt, int PID, double CurrentTime);

@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -570,6 +570,38 @@ public:
 	double getLocalRank(void){return this->localRank;};
 	double getGlobalRank(void){return this->globalRank;};
 };
+
+
+class HCBFSummary:public Packet
+{
+protected:
+	int numPackets;
+	struct PktDest *summaryVector;
+	bool *localCommunity;
+	double localRank;
+	double globalUniqueRank;
+	double localUniqueRank;
+public:
+	HCBFSummary(double Time, int numPkts, struct PktDest* sumVec, bool *LC, double LR, double GUR,double LUR, int PID);
+	~HCBFSummary(void);
+	virtual void setContents(void *data){return;};
+	virtual void *getContents(void){return NULL;};
+	virtual Packet *Duplicate(int hops){return NULL;};
+	virtual bool AccessPkt(void){return true;};
+
+	int getNumPackets(void){return this->numPackets;};
+	struct PktDest *getSummaryVector(void){return this->summaryVector;};
+	bool *getLocalCommunity(void){return this->localCommunity;};
+	double getLocalRank(void){return this->localUniqueRank;};
+	double getGlobalRank(void){return this->globalUniqueRank;};
+	double getlocalMobilityRank(void){return this->localRank;};
+};
+
+
+
+
+
+
 
 
 /* PktDests

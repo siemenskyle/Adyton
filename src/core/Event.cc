@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -105,7 +105,7 @@ void ContactDown::printEvent(void )
  * S: Sender
  * R: Receiver
  */
-Transmission::Transmission(double Time,int S,int R,int ID)
+Transmission::Transmission(double Time,int S,int R,int ID)//For packets which from application layer, S is "-1", R is the sender, ID is the receiver
 {
 	this->EventID=2;
 	this->EventTime=Time;

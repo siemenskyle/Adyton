@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -72,6 +72,16 @@ public:
 	Statistics *Stat;
 	Settings *SimSet;
 	God *Gd;
+	int MaxUI;
+	int MaxUI_NodeID;
+	int MaxLP;
+	int MaxLP_NodeID;
+	int MaxCBC;
+	int MaxCBC_NodeID;
+	int MaxNCF;
+	int MaxNCF_NodeID;
+
+	int counter;
 
 	Node(int NodeID, PacketPool *pktPool, MAC *mlayer, Statistics *St, Settings *S, God *G);
 	virtual ~Node();

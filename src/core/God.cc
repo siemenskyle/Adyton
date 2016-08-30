@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -282,6 +282,7 @@ int God::getSimilarityRank(int nodeID, int destID)
 	tmpPointer = (*SimulationNodes)[nodeID]->RLogic;
 	return ((SimBet *) tmpPointer)->Adja->getSimilarityRank(destID);
 }
+
 
 
 /* getProjNetGrowth
@@ -644,3 +645,100 @@ bool God::optimizeForwards()
 		return false;
 	}
 }
+
+int God::getNeighborAmount(int NID)
+{
+	return this->ActiveConnections->NumberOfN(NID);
+
+}
+
+
+void God::SetMaxUI(int NID,int maxui,int nodeWithMaxUI)
+{
+	(*SimulationNodes)[NID]->MaxUI=maxui;
+	(*SimulationNodes)[NID]->MaxUI_NodeID=nodeWithMaxUI;
+}
+
+int God::getMaxUI(int NID)
+{
+	return (*SimulationNodes)[NID]->MaxUI;
+
+}
+
+int God::getMaxUI_node(int NID)
+{
+	return (*SimulationNodes)[NID]->MaxUI_NodeID;
+
+}
+
+void God::SetMaxLP(int NID,int maxlp,int nodeWithMaxLP)
+{
+	(*SimulationNodes)[NID]->MaxLP=maxlp;
+	(*SimulationNodes)[NID]->MaxLP_NodeID=nodeWithMaxLP;
+}
+
+int God::getMaxLP(int NID)
+{
+	return (*SimulationNodes)[NID]->MaxLP;
+
+}
+int God::getMaxLP_node(int NID)
+{
+	return (*SimulationNodes)[NID]->MaxLP_NodeID;
+
+}
+void God::SetMaxCBC(int NID,int maxCBC,int nodeWithMaxCBC)
+{
+	(*SimulationNodes)[NID]->MaxCBC=maxCBC;
+	(*SimulationNodes)[NID]->MaxCBC_NodeID=nodeWithMaxCBC;
+}
+
+int God::getMaxCBC(int NID)
+{
+	return (*SimulationNodes)[NID]->MaxCBC;
+
+}
+
+bool *God::getCommunityFromCertainNode(int NID) 
+{
+	return (*SimulationNodes)[NID]->RLogic->getCommunity(this->getSimTime());
+}
+
+void God::SetMaxNCF(int NID,int maxNCF,int nodeWithMaxNCF)
+{
+	(*SimulationNodes)[NID]->MaxNCF=maxNCF;
+	(*SimulationNodes)[NID]->MaxNCF_NodeID=nodeWithMaxNCF;
+}
+
+int God::getMaxNCF(int NID)
+{
+	return (*SimulationNodes)[NID]->MaxNCF;
+
+}
+int God::getCBC(bool *DestCommunity, bool *myLocalCommunity, double currentTime)
+{
+	int contacts=0;
+	for(int i = 0; i < SimNodes; i++)
+	{
+		if(myLocalCommunity[i])//check each nodes in my community if they connected to nodes in destination community
+		{
+			contacts+=(*SimulationNodes)[i]->RLogic->getContactsNum(DestCommunity);//get the contacts of each node
+		}
+	}
+	//printf("CBC:%d\n",contacts);
+	return contacts;
+
+}
+
+int God::getNCF(bool *DestCommunity, int NID)
+{
+	return (*SimulationNodes)[NID]->RLogic->getNCFHelper(DestCommunity);
+
+}
+
+PacketEntry* God::getPacketInfo(int NID,int pktID)
+{
+	return (*SimulationNodes)[NID]->Buffer->getPktInfo(pktID);
+
+}
+

@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -26,7 +26,7 @@
 	#define STATS_H
 	#include "Statistics.h"
 #endif
-
+//#define STAT_DEBUG
 
 /* Constructor: Statistics
  * -----------------------
@@ -34,11 +34,11 @@
  */
 Statistics::Statistics(PacketPool *P, int ID, double duration, int trafType, God *G)
 {
-	this->me=ID;
+	this->me=ID; 
 	this->sumHops=0;
 	this->sumDelay=0.0;
 	this->Duplicates=0;
-	this->Pool=P;
+	this->Pool=P; 
 	this->ReceivedForMe=0;
 	this->PktsForMe=0;
 	this->ReceptionList=NULL;
@@ -56,6 +56,17 @@ Statistics::Statistics(PacketPool *P, int ID, double duration, int trafType, God
 	this->traceDuration=duration;
 	this->trafficType=trafType;
 	this->SimGod = G;
+	this->incrForward=0;
+	this->incrNotForward=0;
+	this->pktadded=0;
+	this->forward_FUI=0;
+	this->forward_FLP=0;
+	this->forward_CBC=0;
+	this->forward_NCF=0;
+	this->forward_LUI=0;
+	this->forward_LLP=0;
+	this->Dsent=0;
+
 }
 
 
@@ -77,7 +88,7 @@ void Statistics::SetPktsForMe(int pkts)
 	int i;
 
 
-	this->PktsForMe = pkts;
+	this->PktsForMe = pkts;// the amount of packets that I(node) would be received
 	this->ReceptionList = (int *) malloc(pkts * sizeof(int));
 	this->currentSlot = 0;
 
@@ -176,7 +187,7 @@ void Statistics::pktRec(int hops, double del, Packet *p, double pktCreationTime,
 	int i;
 	int pktID;
 	bool alreadyReceived;
-
+	
 
 	if(isBackgroundTraffic(pktCreationTime))
 	{/* Ignore this packet (background traffic) */
@@ -207,26 +218,36 @@ void Statistics::pktRec(int hops, double del, Packet *p, double pktCreationTime,
 		alreadyReceived = false;
 		for(i = 0; i < this->currentSlot; i++)
 		{
+	
 			if(this->ReceptionList[i] == pktID)
 			{
+			#ifdef STAT_DEBUG
+				printf("this packets: %d has been delivered before\n", pktID);
+			#endif
+
 				alreadyReceived = true;
+
 			}
 		}
 
 		if(alreadyReceived)
-		{
-			this->Duplicates++;
+		{	//never get here fff
+			this->Duplicates++;//count the amount of packets that have been delivered for multiple times
 
 			if(processDuplicates)
 			{
+
 				this->updateStats(pktID, hops, del);
 			}
 		}
 		else
 		{
+			#ifdef STAT_DEBUG
+			printf("this pakcets:%d destination node :%d finnaly get delivered \n",pktID,p->getHeader()->GetDestination());
+			#endif
 			this->sumHops += hops;
 			this->sumDelay += del;
-			this->ReceivedForMe++;
+			this->ReceivedForMe++;//the amount of pkts which are delivered
 
 			this->ReceptionList[this->currentSlot] = pktID;
 			this->currentSlot++;
@@ -260,7 +281,6 @@ void Statistics::updateStats(int pktID, int dupHops, double dupDelay)
 	double curDelay;
 
 
-	/* Get the current statistics of the packet */
 	curHops = this->SimGod->getNumHops(pktID);
 	curDelay = this->SimGod->getDelTime(pktID);
 
@@ -272,16 +292,9 @@ void Statistics::updateStats(int pktID, int dupHops, double dupDelay)
 		exit(EXIT_FAILURE);
 	}
 
-	if((dupHops < 1) || (curHops < 1))
-	{
-		printf("\n[Error]: (Statistics::updateStats) Received a duplicate packet in %d hops, which has already been delivered in %d hops\n\n", dupHops, curHops);
-		exit(EXIT_FAILURE);
-	}
-
-
-	/* Identify the version of Optimal Routing */
 	if(this->SimGod->optimizeDelay())
-	{/* Search for the fastest delivery path with the minimum number of hops */
+	{
+		/* Search for the fastest delivery path with the minimum number of hops */
 		if(dupDelay - curDelay > DBL_EPSILON)
 		{
 			/* Received a duplicate packet with higher delivery delay */
@@ -303,7 +316,8 @@ void Statistics::updateStats(int pktID, int dupHops, double dupDelay)
 		}
 	}
 	else if(this->SimGod->optimizeForwards())
-	{/* Search for the shortest delivery path with the minimum delivery delay */
+	{
+		/* Search for the shortest delivery path with the minimum delivery delay */
 		if(dupHops < curHops)
 		{
 			/* Received a duplicate packet with less number of hops */
@@ -315,11 +329,11 @@ void Statistics::updateStats(int pktID, int dupHops, double dupDelay)
 
 			this->SimGod->updatePktStats(pktID, dupHops, dupDelay);
 		}
-		else
+		else if((dupHops == curHops) && (curHops == 1))
 		{
-			if((dupDelay - curDelay > DBL_EPSILON) && (curHops == 1))
+			if(dupDelay - curDelay > DBL_EPSILON)
 			{
-				/* Received a duplicate packet with higher delivery delay, which has already been delivered directly */
+				/* Received a duplicate packet with higher delivery delay that was also delivered directly */
 				this->SimGod->deleteAllReplicas(pktID);
 			}
 		}
@@ -470,7 +484,7 @@ void Statistics::incRelPktsDropped(double pktCreationTime)
 }
 
 
-bool Statistics::isBackgroundTraffic(double pktCreationTime)
+bool Statistics::isBackgroundTraffic(double pktCreationTime)//??? invaild packets?
 {
 	if((this->trafficType == SAMPLE_TT) && !((pktCreationTime >= this->sampleStartTime) && (pktCreationTime <= this->sampleEndTime)))
 	{
@@ -480,4 +494,32 @@ bool Statistics::isBackgroundTraffic(double pktCreationTime)
 	{
 		return false;
 	}
+}
+
+void Statistics::findWhichCauseMostForwarding(int forword)
+{
+	switch(forword)
+	{
+		case 1:
+		this->forward_FUI++;
+		break;
+		case 2:
+		this->forward_FLP++;
+		break;
+		case 3:
+		this->forward_CBC++;
+		break;
+		case 4:
+		this->forward_NCF++;
+		break;
+		case 5:
+		this->forward_LUI++;
+		break;
+		case 6:
+		this->forward_LLP++;
+		break;
+	}
+	
+
+
 }

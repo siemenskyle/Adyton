@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -54,8 +54,7 @@
 #define DARTMOUTH_TR 21
 #define DARTMOUTH_2WEEKS_TR 22
 #define DEBUG_TR 23
-#define CUSTOM_TR 24
-#define LAST_ENTRY_TR 25 //this should always be the last one
+#define LAST_ENTRY_TR 24 //this should always be the last one
 
 //Routing Protocols
 #define DIRECT_RT 1
@@ -69,13 +68,15 @@
 #define MSFSW_RT 9
 #define PROPHETSW_RT 10
 #define LSFSF_RT 11
-#define CNF_RT 12
-#define CNR_RT 13
-#define EBR_RT 14
-#define DELEGATION_RT 15
-#define COORD_RT 16
-#define OPTIMAL_RT 17
-#define LAST_ENTRY_RT 18 //this should always be the last one
+#define CNR_RT 12
+#define EBR_RT 13
+#define DELEGATION_RT 14
+#define COORD_RT 15
+#define OPTIMAL_RT 16
+#define FLOODING_RT 17
+#define HCBF_RT 18
+#define LAST_ENTRY_RT 19 //this should always be the last one
+
 
 //Congestion Control Mechanisms
 #define NOCC_CC 1
