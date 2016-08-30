@@ -530,18 +530,18 @@ public:
 class LCandFS:public Packet
 {
 protected:
-	bool *localCommunity;
+	int *localCommunity;
 	bool **familiarSets;
 	int maxN;
 public:
-	LCandFS(double Time, bool *LC, bool **FS, int PID);
+	LCandFS(double Time, int *LC, bool **FS, int PID);
 	~LCandFS(void);
 	virtual void setContents(void *data){return;};
 	virtual void *getContents(void){return NULL;};
 	virtual Packet *Duplicate(int hops){return NULL;};
 	virtual bool AccessPkt(void){return true;};
 
-	bool *getLocalCommunity(void){return this->localCommunity;};
+	int *getLocalCommunity(void){return this->localCommunity;};
 	bool **getFamiliarSets(void){return this->familiarSets;};
 	
 	void setmaxN(int N){this->maxN=N;};
@@ -553,11 +553,11 @@ class BubbleSummary:public Packet
 protected:
 	int numPackets;
 	struct PktDest *summaryVector;
-	bool *localCommunity;
+	int *localCommunity;
 	double localRank;
 	double globalRank;
 public:
-	BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, bool *LC, double LR, double GR, int PID);
+	BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, int *LC, double LR, double GR, int PID);
 	~BubbleSummary(void);
 	virtual void setContents(void *data){return;};
 	virtual void *getContents(void){return NULL;};
@@ -566,7 +566,7 @@ public:
 
 	int getNumPackets(void){return this->numPackets;};
 	struct PktDest *getSummaryVector(void){return this->summaryVector;};
-	bool *getLocalCommunity(void){return this->localCommunity;};
+	int *getLocalCommunity(void){return this->localCommunity;};
 	double getLocalRank(void){return this->localRank;};
 	double getGlobalRank(void){return this->globalRank;};
 };

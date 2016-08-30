@@ -966,7 +966,7 @@ ReqLCandFS::~ReqLCandFS(void )
 }
 
 
-LCandFS::LCandFS(double Time, bool *LC, bool **FS, int PID): Packet(Time, PID)
+LCandFS::LCandFS(double Time, int *LC, bool **FS, int PID): Packet(Time, PID)
 {
 	this->Type = LC_FS;
 	this->Pktsize = 20;
@@ -990,7 +990,7 @@ LCandFS::~LCandFS(void)
 }
 
 
-BubbleSummary::BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, bool *LC, double LR, double GR, int PID): Packet(Time, PID)
+BubbleSummary::BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, int *LC, double LR, double GR, int PID): Packet(Time, PID)
 {
 	this->Type = BUBBLE_SUMMARY;
 	this->Pktsize = 30;

@@ -33,6 +33,10 @@
 #endif
 
 
+#define DEFAULT_CM_UPDATE_INTERVAL 21600; //6 hours
+
+//#define LOUVAIN_DEBUG true;
+
 /* Constructor:God
  * ---------------
  * God has access to all simulation components. It is useful in the early stages of a new routing 
@@ -81,6 +85,13 @@ God::God(Settings *S)
 		this->outputFilename = "none";
 		this->outFile = NULL;
 	}
+
+    lastCommUpdate = 0;
+    string profileAttribute;
+    if(S->ProfileExists() && (profileAttribute = S->GetProfileAttribute("communityEpoch")) != "none")
+		commUpdateInterval = atof(profileAttribute.c_str());
+	else
+		commUpdateInterval = DEFAULT_CM_UPDATE_INTERVAL;
 
 	return;
 }
@@ -643,4 +654,145 @@ bool God::optimizeForwards()
 	{
 		return false;
 	}
+}
+
+
+
+/* Set the communities
+ * -------------------
+ * For Community Detection done at a centralized level
+ */
+void God::determineCommunities()
+{
+	double time = getSimTime();
+	if(time - lastCommUpdate < commUpdateInterval)
+		return;
+	
+	lastCommUpdate = time;
+	
+	vector<double*> contactDurations;
+	
+	for(int i = 0; i < SimNodes; i++)
+	{
+		BubbleRap* rt = (BubbleRap *)( (*SimulationNodes)[i]->RLogic );
+		contactDurations.push_back(rt->labeling->cumulativeContactDurations);
+	}
+	
+	for(int i = 0; i < SimNodes; i++)
+		for(int j = 0; j < SimNodes; j++)
+		{
+			double sum = contactDurations[i][j] + contactDurations[j][i];
+			contactDurations[i][j] = sum;
+			contactDurations[j][i] = sum;
+		}
+	
+	int* communities = LouvainDetermine(contactDurations);
+	#ifdef LOUVAIN_DEBUG
+	printf("Communitites at %f\n", time);
+	#endif
+	for(int i = 0; i < SimNodes; i++)
+	{
+		#ifdef LOUVAIN_DEBUG
+		printf("%d\t%d\n", i, communities[i]);
+		#endif
+		BubbleRap* rt = (BubbleRap *)( (*SimulationNodes)[i]->RLogic );
+		Louvain* l = (Louvain *)(rt->labeling->community);
+		l->setCommunities(communities);
+	}
+}
+
+int* God::LouvainDetermine(vector<double*> contactDurations)
+{
+	int* communities;
+	int i,j;
+
+	if((communities = (int *) malloc(SimNodes * sizeof(int))) == NULL)
+	{
+		printf("\nError!\nUnable to allocate memory for the louvain communities");
+		exit(EXIT_FAILURE);
+	}
+	
+	for(i = 0; i < SimNodes; i++)
+		communities[i] = i;
+		
+	double modOld = -99;
+	double modCur = CalculateModularity(contactDurations, communities);
+	
+	while(modOld != modCur && modOld != 0.0)
+	{
+		modOld = modCur;
+		for(i = 0; i < SimNodes; i++)
+		{
+			int bestCom = communities[i];
+			double bestModSoFar = modCur;
+			for(j = 0; j < SimNodes; j++)
+			{
+				if(contactDurations[i][j] > 0)
+				{
+					communities[i] = communities[j];
+					double tmp = CalculateModularity(contactDurations, communities);
+					if(tmp > bestModSoFar)
+					{
+						bestModSoFar = tmp;
+						bestCom = communities[j];
+					}
+				}
+			}
+			communities[i] = bestCom;
+		}
+		modCur = CalculateModularity(contactDurations, communities);
+		#ifdef LOUVAIN_DEBUG
+			printf("Modularity: %f\n", modCur);
+		#endif
+	}
+	
+	
+	return communities;
+}
+
+double God::CalculateModularity(vector<double*> contactDurations, int* communities)
+{
+	double* degrees;
+	double totalDegree = 0;
+	
+	if((degrees = (double *) malloc(SimNodes * sizeof(double))) == NULL)
+	{
+		printf("\nError!\nUnable to allocate memory for the degree array of nodes (Calculate Modularity)");
+		exit(EXIT_FAILURE);
+	}
+	
+	for(int i = 0; i < SimNodes; i++)
+	{
+		degrees[i] = 0;
+		for(int j = 0; j < SimNodes; j++)
+		{
+			if(i == j)
+				continue;
+			degrees[i] = degrees[i] + contactDurations[i][j];
+			totalDegree = totalDegree + contactDurations[i][j];
+		}
+	}
+	
+	
+	double modularity = 0;
+	
+	for(volatile int i = 0; i < SimNodes; i++)
+	{
+		for(volatile int j = 0; j < SimNodes; j++)
+		{
+			if(i != j && communities[i] == communities[j])
+			{
+				double a = 0;
+				if(contactDurations[i][j] > 0)
+					a = 1;
+				a = contactDurations[i][j];
+				
+				double q = a -  ( ( degrees[i]*degrees[j] ) / (2 * totalDegree) );
+			
+				modularity = modularity + q;
+			}
+		}
+	}
+	modularity = (1/ (2 * totalDegree)) * modularity;
+	return modularity;
 }

@@ -1,45 +1,26 @@
-/*
- *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
- *  and Evangelos Papapetrou
- *
- *  This file is part of Adyton.
- *
- *  Adyton is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Adyton is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Adyton.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  Written by Dimitrios-Georgios Akestoridis.
- */
-
-
-#ifndef COMMUNITYDETECTION_H
-	#define COMMUNITYDETECTION_H
-	#include "CommunityDetection.h"
+#ifndef BUBBLECMFS_H
+	#define BUBBLECMFS_H
+	#include "BubbleCMFS.h"
 #endif
 
 
-CommunityDetection::CommunityDetection(int myID, int totalNodes)
+BubbleCMFS::BubbleCMFS(int myID, int totalNodes, God *G, Settings *S)
 {
 	int i;
 	int j;
 
-	communityID = 1;
-
+	string profileAttribute;
 	nodeID = myID;
 	numNodes = totalNodes;
 	kappa = DEFAULT_KAPPA;
 	familiarSetThreshold = DEFAULT_FAMILIAR_SET_THRESHOLD;
 	prevUpdate = 0.0;
+	
+	if(S->ProfileExists() && (profileAttribute = S->GetProfileAttribute("communityDetect")) != "none")
+		community = new Louvain(myID, totalNodes, G);
+	else
+		community = new KClique(myID, totalNodes);
+		
 
 	if((cumulativeContactDurations = (double *) malloc(numNodes * sizeof(double))) == NULL)
 	{
@@ -53,11 +34,11 @@ CommunityDetection::CommunityDetection(int myID, int totalNodes)
 		exit(EXIT_FAILURE);
 	}
 
-	if((myLocalCommunity = (int *) malloc(numNodes * sizeof(int))) == NULL)
+	/*if((myLocalCommunity = (int *) malloc(numNodes * sizeof(int))) == NULL)
 	{
 		printf("\nError!\nUnable to allocate memory for the myLocalCommunity array of node %d\n\n", nodeID);
 		exit(EXIT_FAILURE);
-	}
+	}*/
 
 	if((myFamiliarSets = (bool **) malloc(numNodes * sizeof(bool *))) == NULL)
 	{
@@ -79,7 +60,7 @@ CommunityDetection::CommunityDetection(int myID, int totalNodes)
 		cumulativeContactDurations[i] = 0.0;
 		currConnectedNodes[i] = false;
 
-		if(i != nodeID)
+		/*if(i != nodeID)
 		{
 			myLocalCommunity[i] = 0;
 		}
@@ -87,7 +68,7 @@ CommunityDetection::CommunityDetection(int myID, int totalNodes)
 		{
 			myLocalCommunity[i] = 1;
 		}
-
+		*/
 		for(j = 0; j < numNodes; j++)
 		{
 			myFamiliarSets[i][j] = false;
@@ -98,7 +79,7 @@ CommunityDetection::CommunityDetection(int myID, int totalNodes)
 }
 
 
-CommunityDetection::~CommunityDetection()
+BubbleCMFS::~BubbleCMFS()
 {
 	int i;
 
@@ -109,7 +90,8 @@ CommunityDetection::~CommunityDetection()
 	}
 
 	free(myFamiliarSets);
-	free(myLocalCommunity);
+	//free(myLocalCommunity);
+	free(community);
 	free(currConnectedNodes);
 	free(cumulativeContactDurations);
 
@@ -117,23 +99,24 @@ CommunityDetection::~CommunityDetection()
 }
 
 
-void CommunityDetection::setKappa(int value)
+void BubbleCMFS::setKappa(int value)
 {
 	kappa = value;
+	((KClique *) community)->setKappa(value);
 
 	return;
 }
 
 
-void CommunityDetection::setFamiliarSetThreshold(double threshold)
+void BubbleCMFS::setFamiliarSetThreshold(double threshold)
 {
 	familiarSetThreshold = threshold;
-
+	((KClique *) community)->setFamiliarSetThreshold(threshold);
 	return;
 }
 
 
-void CommunityDetection::connectionOccured(double currTime, int encID)
+void BubbleCMFS::connectionOccured(double currTime, int encID)
 {
 	updateLCandFS(currTime);
 	currConnectedNodes[encID] = true;
@@ -142,7 +125,7 @@ void CommunityDetection::connectionOccured(double currTime, int encID)
 }
 
 
-void CommunityDetection::disconnectionOccured(double currTime, int encID)
+void BubbleCMFS::disconnectionOccured(double currTime, int encID)
 {
 	updateLCandFS(currTime);
 	currConnectedNodes[encID] = false;
@@ -151,10 +134,9 @@ void CommunityDetection::disconnectionOccured(double currTime, int encID)
 }
 
 
-void CommunityDetection::updateLCandFS(double currTime)
+void BubbleCMFS::updateLCandFS(double currTime)
 {
 	int i;
-
 
 	for(i = 0; i < numNodes; i++)
 	{
@@ -165,10 +147,12 @@ void CommunityDetection::updateLCandFS(double currTime)
 			if((cumulativeContactDurations[i] > familiarSetThreshold) && (!myFamiliarSets[nodeID][i]))
 			{
 				myFamiliarSets[nodeID][i] = true;
-				myLocalCommunity[i] = 1;
+				//myLocalCommunity[i] = 1;
 			}
 		}
 	}
+
+	community->updateLC(cumulativeContactDurations);
 
 	prevUpdate = currTime;
 
@@ -176,7 +160,7 @@ void CommunityDetection::updateLCandFS(double currTime)
 }
 
 
-void CommunityDetection::updateBubble(int *encLocalCommunity, bool **encFamiliarSets, int encID, double currentTime)
+void BubbleCMFS::updateBubble(int *encLocalCommunity, bool **encFamiliarSets, int encID, double currentTime)
 {
 	int i;
 	int j;
@@ -186,8 +170,13 @@ void CommunityDetection::updateBubble(int *encLocalCommunity, bool **encFamiliar
 	updateLCandFS(currentTime);
 
 
+	community->encounterCommunity(encLocalCommunity, encID);
+	
+	int* myLocalCommunity = community->cloneLocalCommunity();
+	int myCommID = community->getMyCommunity();
+	
 	/* Check if the encounter node is not in my local community */
-	if(myLocalCommunity[encID] == 0)
+	if(myLocalCommunity[encID] != myCommID)
 	{
 		commonMembers = 0;
 
@@ -200,15 +189,15 @@ void CommunityDetection::updateBubble(int *encLocalCommunity, bool **encFamiliar
 		}
 
 
-		if(commonMembers >= kappa - 1)
+		/*if(commonMembers >= kappa - 1)
 		{
 			myLocalCommunity[encID] = 1;
-		}
+		}*/
 	}
 
 
 	/* Check if the encounter node is in my local community */
-	if(myLocalCommunity[encID] == 1)
+	if(myLocalCommunity[encID] == myCommID)
 	{
 		for(i = 0; i < numNodes; i++)
 		{
@@ -217,13 +206,13 @@ void CommunityDetection::updateBubble(int *encLocalCommunity, bool **encFamiliar
 
 
 			/* Check the node in the local community of the encountered node */
-			if((encLocalCommunity[i] == 1) && (myLocalCommunity[i] == 0))
+			if((encLocalCommunity[i] == 1) && (myLocalCommunity[i] != myCommID))
 			{
 				commonMembers = 0;
 
 				for(j = 0; j < numNodes; j++)
 				{
-					if((encFamiliarSets[i][j]) && (myLocalCommunity[j] == 1))
+					if((encFamiliarSets[i][j]) && (myLocalCommunity[j] == myCommID))
 					{
 						commonMembers++;
 					}
@@ -231,7 +220,7 @@ void CommunityDetection::updateBubble(int *encLocalCommunity, bool **encFamiliar
 
 				if(commonMembers >= kappa - 1)
 				{
-					myLocalCommunity[i] = 1;
+					//myLocalCommunity[i] = 1;
 
 					/* Update my approximation of the familiar set of the new community member */
 					for(j = 0; j < numNodes; j++)
@@ -243,29 +232,21 @@ void CommunityDetection::updateBubble(int *encLocalCommunity, bool **encFamiliar
 		}
 	}
 
+	free(myLocalCommunity);
+
 	return;
 }
 
 
-int *CommunityDetection::cloneLocalCommunity(double currentTime)
-{
-	int *tmp;
-	
+int *BubbleCMFS::cloneLocalCommunity(double currentTime)
+{	
 	updateLCandFS(currentTime);
 
-	if((tmp = (int *) malloc(numNodes * sizeof(int))) == NULL)
-	{
-		printf("\nError!\nUnable to allocate memory to clone the myLocalCommunity array of node %d\n\n", nodeID);
-		exit(EXIT_FAILURE);
-	}
-
-	memcpy(tmp, myLocalCommunity, numNodes * sizeof(int));
-
-	return tmp;
+	return community->cloneLocalCommunity();
 }
 
 
-bool **CommunityDetection::cloneFamiliarSets(double currentTime)
+bool **BubbleCMFS::cloneFamiliarSets(double currentTime)
 {
 	int i;
 	bool **tmp;

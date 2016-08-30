@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -32,12 +32,22 @@
 
 #ifndef CENTRALITYAPPROXIMATION_H
 	#define CENTRALITYAPPROXIMATION_H
-	#include "../data-structures/CentralityApproximation.h"
+	#include "../community-detection/CentralityApproximation.h"
 #endif
 
 #ifndef COMMUNITYDETECTION_H
 	#define COMMUNITYDETECTION_H
-	#include "../data-structures/CommunityDetection.h"
+	#include "../community-detection/CommunityDetection.h"
+#endif
+
+#ifndef BUBBLECMFS_H
+	#define BUBBLECMFS_H
+	#include "../community-detection/BubbleCMFS.h"
+#endif
+
+#ifndef IDENTIFICATION_H
+	#define IDENTIFICATION_H
+	#include "../core/Identification.h"
 #endif
 
 
@@ -47,7 +57,7 @@ protected:
 	bool IntraCopyOn;
 	bool InterCopyOn;
 	CentralityApproximation *ranking;
-	CommunityDetection *labeling;
+	//BubbleCMFS *labeling;
 	virtual void AfterDirectTransfers(double CTime,int NID);
 	virtual void SendPacket(double STime, int pktID,int nHop,int RepValue);
 public:
@@ -57,6 +67,8 @@ public:
 	virtual void ContactRemoved(double CTime, int NID);
 	virtual void Contact(double CTime, int NID);
 	virtual void recv(double rTime, int pktID);
+	
+	BubbleCMFS *labeling;
 private:
 	void ReceptionData(Header *hd, Packet *pkt, int PID, double CurrentTime, int RealID);
 	void ReceptionReqLCandFS(Header *hd, Packet *pkt, int PID, double CurrentTime);

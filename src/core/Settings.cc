@@ -474,6 +474,11 @@ void Settings::setRT(int Rout)
 				{
 					suffix += ".familiarSetThreshold" + profileAttribute;
 				}
+				
+				if((profileAttribute = this->GetProfileAttribute("communityDetect")) != "none")
+				{
+					suffix += ".commuityDetectModel" + profileAttribute;
+				}
 			}
 
 			this->RTname.assign("BubbleRap" + suffix);

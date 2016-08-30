@@ -2,6 +2,7 @@ CC=g++
 CFLAGS=-c -g -isystem ../ext/ -isystem ../ext/google-sparsehash/ -Wall -O3 -std=c++11
 
 dsPath=./data-structures
+cmPath=./community-detection
 scPath=./scheduling-policies
 dpPath=./dropping-policies
 dmPath=./deletion-mechanisms
@@ -9,7 +10,9 @@ ccPath=./congestion-control
 rpPath=./routing
 corePath=./core
 
-SOURCES_DS=$(dsPath)/Adjacency.cc $(dsPath)/DPT.cc $(dsPath)/CentralityApproximation.cc $(dsPath)/CommunityDetection.cc $(dsPath)/Utility.cc $(dsPath)/Sociability.cc $(dsPath)/Enc.cc $(dsPath)/DestEnc.cc $(dsPath)/LTS.cc $(dsPath)/AMT.cc $(dsPath)/ASP.cc $(dsPath)/AIT.cc $(dsPath)/MEED.cc $(dsPath)/Familiarity.cc $(dsPath)/Regularity.cc $(dsPath)/SPM.cc $(dsPath)/LastContact.cc $(dsPath)/Coding.cc $(dsPath)/pktDepository.cc
+SOURCES_DS=$(dsPath)/Adjacency.cc $(dsPath)/DPT.cc $(dsPath)/Utility.cc $(dsPath)/Sociability.cc $(dsPath)/Enc.cc $(dsPath)/DestEnc.cc $(dsPath)/LTS.cc $(dsPath)/AMT.cc $(dsPath)/ASP.cc $(dsPath)/AIT.cc $(dsPath)/MEED.cc $(dsPath)/Familiarity.cc $(dsPath)/Regularity.cc $(dsPath)/SPM.cc $(dsPath)/LastContact.cc $(dsPath)/Coding.cc $(dsPath)/pktDepository.cc
+
+SOURCES_CM=$(cmPath)/CommunityDetection.cc $(cmPath)/CentralityApproximation.cc $(cmPath)/BubbleCMFS.cc $(cmPath)/KClique.cc $(cmPath)/CommunityDetectModel.cc $(cmPath)/Louvain.cc
 
 SOURCES_SC=$(scPath)/SchedulingPolicy.cc $(scPath)/FIFO.cc $(scPath)/LIFO.cc $(scPath)/GRTRMax.cc $(scPath)/GRTRSort.cc $(scPath)/HNUV.cc
 
@@ -25,12 +28,12 @@ SOURCES_CORE=$(corePath)/Header.cc $(corePath)/Packet.cc $(corePath)/PacketPool.
 
 SOURCES_MAIN=Adyton.cc
 
-OBJECTS=$(SOURCES_DS:.cc=.o) $(SOURCES_SC:.cc=.o) $(SOURCES_DP:.cc=.o) $(SOURCES_DM:.cc=.o) $(SOURCES_CC:.cc=.o) $(SOURCES_RP:.cc=.o) $(SOURCES_CORE:.cc=.o) $(SOURCES_MAIN:.cc=.o)
+OBJECTS=$(SOURCES_DS:.cc=.o) $(SOURCES_CM:.cc=.o) $(SOURCES_SC:.cc=.o) $(SOURCES_DP:.cc=.o) $(SOURCES_DM:.cc=.o) $(SOURCES_CC:.cc=.o) $(SOURCES_RP:.cc=.o) $(SOURCES_CORE:.cc=.o) $(SOURCES_MAIN:.cc=.o)
 
 EXECUTABLE=Adyton
 
 
-all: $(SOURCES_DS) $(SOURCES_SC) $(SOURCES_DP) $(SOURCES_DM) $(SOURCES_CC) $(SOURCES_RP) $(SOURCES_CORE) $(EXECUTABLE)
+all: $(SOURCES_DS) $(SOURCES_CM) $(SOURCES_SC) $(SOURCES_DP) $(SOURCES_DM) $(SOURCES_CC) $(SOURCES_RP) $(SOURCES_CORE) $(EXECUTABLE)
 	
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@
@@ -40,6 +43,7 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean:
 	rm -rf ${dsPath}/*.o
+	rm -rf ${cmPath}/*.o
 	rm -rf ${scPath}/*.o
 	rm -rf ${dpPath}/*.o
 	rm -rf $(dmPath)/*.o
@@ -52,6 +56,8 @@ clean:
 	rm -rf ./*.cc~
 	rm -rf ${dsPath}/*.cc~
 	rm -rf ${dsPath}/*.h~
+	rm -rf ${cmPath}/*.cc~
+	rm -rf ${cmPath}/*.h~	
 	rm -rf ${scPath}/*.cc~
 	rm -rf ${scPath}/*.h~
 	rm -rf ${dpPath}/*.cc~
