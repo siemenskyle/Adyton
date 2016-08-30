@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -41,7 +41,7 @@ Simulator::Simulator(Settings *S)
 	//create God
 	SimGod=new God(Set);
 	//create the packet pool
-	Pool=new PacketPool(Set->getTrafficLoad());
+	Pool=new PacketPool(Set->getTrafficLoad());//getTrafficLoad: number of packets
 	//create a new event list
 	SimList=new EventList();
 	//create the traffic generator
@@ -50,30 +50,35 @@ Simulator::Simulator(Settings *S)
 	CMap=new ConnectionMap(Set->getNN());
 	//create a new mac layer (ideal)
 	MAClayer=new Ideal(2,SimList,CMap);
-	//create Nodelist
+
+
+	//create Nodelist // each node <-> each statistics
 	Node *tmp=NULL;
 	Statistics *st=NULL;
-	for(int i=0;i<Set->getNN();i++)
+	for(int i=0;i< Set->getNN();i++)
 	{
 		st=new Statistics(Pool, i, Set->getTraceDuration(), Set->getTrafficType(), SimGod);
 		Stats.push_back(st);
 		
-		tmp=new Node(i,Pool,MAClayer,st,Set,SimGod);
+		tmp=new Node(i,Pool,MAClayer,st,Set,SimGod);//also set the routing protocol and packet buffer
 		Nodes.push_back(tmp);
 	}
+
+
 	//give access to God
 	//first to Connection Map
 	SimGod->setActiveConnections(CMap);
 	//then, give access to all Nodes
 	SimGod->setSimulationNodes(&Nodes);
 	
+
 	Res=new Results(&Stats,&Nodes,S,SimGod,Traffic);
 	//set attributes for partial trace reading
-	if(S->getSplit() != -1)
+	if(S->getSplit() != -1)//100 piecese
 	{
 		this->CurrentReadBlock=0;
-		this->NumberReadBlocks=S->getSplit();
-		this->ReadBlockSize=(S->getLines()-(S->getLines()%S->getSplit()))/S->getSplit();
+		this->NumberReadBlocks=S->getSplit();//100
+		this->ReadBlockSize=(S->getLines()-(S->getLines()%S->getSplit()))/S->getSplit(); // the amount of lines which would be read in one turn
 	}
 	else
 	{
@@ -116,6 +121,7 @@ void Simulator::performSimulation()
 	Res->writeSimulationSettings();
 
 	this->LoadTraffic();
+
 	this->LoadContacts();
 
 	this->startSimulation();
@@ -130,7 +136,7 @@ void Simulator::performSimulation()
  */
 void Simulator::startSimulation()
 {
-	Event *e=SimList->GetTop();
+	Event *e=SimList->GetTop();// get the event with smallest time value. 
 	Node *Current=NULL;
 
 	if(!Set->GUIon())
@@ -141,7 +147,7 @@ void Simulator::startSimulation()
 		}
 	}
 
-	while(e != NULL)
+	while(e != NULL)//key part
 	{
 		if(Set->getOUT() == T5_OUT)
 		{
@@ -153,11 +159,15 @@ void Simulator::startSimulation()
 		this->SimGod->setSimTime(this->CurrentTime);
 		//printf("Sim Time:%f\n",this->CurrentTime);
 		if(e->getEventID() == 1)
-		{//Contact up
+		{//Contact up 
 			//Check if already connected
+			#ifdef SIMULATOR_DEBUG
+			printf("contactUp event\n");
+			#endif
 			bool oldstateA=this->CMap->AreConnected(((ContactUp *)e)->getNodeA(),((ContactUp *)e)->getNodeB());
 			//bool oldstateB=this->CMap->AreConnected(((ContactUp *)e)->getNodeB(),((ContactUp *)e)->getNodeA());
-			//Inform Connection Map
+
+			//Inform Connection Map // the do connection between each pair
 			this->CMap->SetConnection(((ContactUp *)e)->getNodeA(),((ContactUp *)e)->getNodeB());
 			//bidirectional
 			this->CMap->SetConnection(((ContactUp *)e)->getNodeB(),((ContactUp *)e)->getNodeA());
@@ -168,11 +178,15 @@ void Simulator::startSimulation()
 			#endif
 			//Inform Node
 			Current=Nodes[((ContactUp *)e)->getNodeA()];
-			Current->ConUpdate(this->CurrentTime,((ContactUp *)e)->getNodeB(),true,oldstateA);
+			//Current->ConUpdate(this->CurrentTime,((ContactUp *)e)->getNodeB(),true,oldstateA);
+			Current->ConUpdate(this->CurrentTime,((ContactUp *)e)->getNodeB(),true,false);//if we dont call the newContact method, then the second node wont set its labeling to connent to the first node 
 		}
 		else if(e->getEventID() == 3)
 		{//Contact down
 			//Inform Connection Map
+			#ifdef SIMULATOR_DEBUG
+			printf("disconnect event\n");
+			#endif
 			this->CMap->UnSetConnection(((ContactDown *)e)->getNodeA(),((ContactDown *)e)->getNodeB());
 			//bidirectional
 			this->CMap->UnSetConnection(((ContactDown *)e)->getNodeB(),((ContactDown *)e)->getNodeA());
@@ -184,6 +198,7 @@ void Simulator::startSimulation()
 			//Inform Node
 			Current=Nodes[((ContactDown *)e)->getNodeA()];
 			Current->ConUpdate(this->CurrentTime,((ContactDown *)e)->getNodeB(),false,false);
+			
 		}
 		else if(e->getEventID() == 2)
 		{//Transmission
@@ -191,24 +206,36 @@ void Simulator::startSimulation()
 			printf("%f:Transmission event Sender:%d Receiver:%d packet id:%d\n",this->CurrentTime,((Transmission *)e)->getSender(),((Transmission *)e)->getReceiver(),((Transmission *)e)->getpktID());
 			#endif
 			Current=Nodes[((Transmission *)e)->getReceiver()];
-			if(((Transmission *)e)->getSender() == APPLICATION)
+// check whether this packet come from another node or the application layer
+			if(((Transmission *)e)->getSender() == APPLICATION)//"APPLICATION" is -1
 			{//The packet comes from application layer
+				
 				//The packet ID holds information about final destination of the packet
 				//Note: This is done only for application layer packets
-				Current->recvFromApp(this->CurrentTime,((Transmission *)e)->getpktID());
+				//Current is the sender node, not the receiver node
+				Current->recvFromApp(this->CurrentTime,((Transmission *)e)->getpktID());//(Transmission *)e)->getpktID(): receiver ID
+				
+				//--since this packet is from application layer, so the real sender is actully the NodeB(receiver) and the receiver 					is the pktID, So I do some modification here
+				//Current=Nodes[((Transmission *)e)->getpktID()];//get the real receiver node
+				//Current->recvFromApp(this->CurrentTime,((Transmission *)e)->getReceiver());//pass the sender-node Id 
+
+
 			}
 			else
 			{//Normal packet transmission
-				if(Check((Transmission *)e))
+				if(Check((Transmission *)e))//check if sender and receiver are still connected
 				{
-					Current->recv(((Transmission *)e)->getpktID(),this->CurrentTime);
+					Current->recv(((Transmission *)e)->getpktID(),this->CurrentTime);// recv() in Node.cc will just invoke recv() in RT
 				}
 			}
 		}
 		else
 		{
+
+			//it is a check-point event, so the simulator needs to load a next blunck
 			#ifdef SIMULATOR_DEBUG
 			printf("Continue loading trace file into memory..\n");
+			//printf("the time of check point event is : %f \n", e->getEventTime());
 			#endif
 			//printf("Check Point Reached. Have to continue uploading from line %d\n",((CheckPoint *)e)->GetLine());
 			//SimList->PrintList();
@@ -217,11 +244,15 @@ void Simulator::startSimulation()
 		}
 		delete e;
 		e=SimList->GetTop();
-	}
+			#ifdef SIMULATOR_DEBUG
+		printf("\n\n\n");
+			#endif
 
+	}
+	
 	for(int i=0;i<Set->getNN();i++)
 	{
-		Nodes[i]->Finalize();
+		Nodes[i]->Finalize();//not for bubbleRap
 	}
 
 	if(!Set->GUIon())
@@ -404,7 +435,7 @@ void Simulator::LoadCompleteContacts()
 void Simulator::LoadPartialContacts()
 {
 	FILE *fp=NULL;
-	long int Lines=Set->getLines();
+	long int Lines=Set->getLines();//amount of lines
 	long int StartLine=0;
 	long int StopLine=0;
 	static int oldVal=-1;
@@ -415,15 +446,15 @@ void Simulator::LoadPartialContacts()
 		abort();
 	}
 	//Go to next read block
-	this->CurrentReadBlock++;
-	char piece[10];
+	this->CurrentReadBlock++;//init value is 0
+	char piece [10];
 	if(!Set->getBatchmode() && !Set->GUIon())
 	{
-		sprintf(piece,"%ld/%ld",this->CurrentReadBlock,this->NumberReadBlocks);
+		sprintf(piece,"%ld/%ld",this->CurrentReadBlock,this->NumberReadBlocks);// 1/100 2/100 ... 100/100
 		printf("%s",piece);
 		fflush(stdout);
 	}
-	if(Set->GUIon())
+	if(Set->GUIon())//what is GUI???
 	{
 		int progress=(int)(((float)this->CurrentReadBlock/(float)this->NumberReadBlocks)*100.0);
 		if(progress > oldVal)
@@ -433,7 +464,7 @@ void Simulator::LoadPartialContacts()
 			fflush(stdout);
 		}
 	}
-	StartLine=((this->CurrentReadBlock-1)*this->ReadBlockSize)+1;
+	StartLine=((this->CurrentReadBlock-1)*this->ReadBlockSize)+1;// amount of lines that is going to be read per term (100 split->100 terms)
 	//Check if this is the last block
 	if(this->CurrentReadBlock == this->NumberReadBlocks)
 	{
@@ -449,6 +480,8 @@ void Simulator::LoadPartialContacts()
 		printf("Problem with partial reading of the trace file!Exiting..\n");
 		abort();
 	}
+
+	//--start to get the trace contact file into --//
 	//printf("Reading lines:%d to %d\n",StartLine,StopLine);
 	if ((fp=fopen(Set->getContactFilename()->c_str(), "r")) == NULL)
 	{
@@ -457,7 +490,7 @@ void Simulator::LoadPartialContacts()
 	}
 	int NodeA,NodeB;
 	double Begin,End;
-	//Skip lines that have been already uploaded to memory
+	//ignore lines that have been already uploaded to memory, jump to the startLine of current block
 	for(int i=1;i<StartLine;i++)
 	{
 		if(fscanf(fp,"%d\t%d\t%lg\t%lg\n",&NodeA,&NodeB,&Begin,&End) == EOF)
@@ -466,9 +499,10 @@ void Simulator::LoadPartialContacts()
 			abort();
 		}
 	}
+
 	//printf("Skipped lines from 1 to %d\n",(StartLine-1));
-	Event *Up=NULL;
-	Event *Down=NULL;
+	Event *Up=NULL;//a connection between two nodes.
+	Event *Down=NULL;//a disconnection between two nodes.
 	for(int i=StartLine;i<=StopLine;i++)
 	{
 		if(fscanf(fp,"%d\t%d\t%lg\t%lg\n",&NodeA,&NodeB,&Begin,&End) == EOF)
@@ -476,9 +510,14 @@ void Simulator::LoadPartialContacts()
 			printf("End of File occurred..Exiting\n");
 			abort();
 		}
+		if(Begin!=End)
+		{
+		#ifdef SIMULATOR_DEBUG
+		printf("contack events' begin time value of this checkPoint event: %f \n", Begin);
+		#endif
 		//printf("%d %d %lg %lg\n",NodeA,NodeB,Begin,End);
-		Up=new ContactUp(Begin,NodeA,NodeB);
-		Down=new ContactDown(End,NodeA,NodeB);
+		Up=new ContactUp(Begin,NodeA,NodeB);//Event.cc 
+		Down=new ContactDown(End,NodeA,NodeB);//
 		SimList->InsertEvent(Down);
 		SimList->InsertEvent(Up);
 		//Bidirectional - Proper way to insert bidirectional connection
@@ -486,8 +525,13 @@ void Simulator::LoadPartialContacts()
 		Down=new ContactDown(End,NodeB,NodeA);
 		SimList->InsertEvent(Down);
 		SimList->InsertEvent(Up);
+		}
+		else{
+		Nodes[0]->counter++;	
+//printf("startTime:%f,end time:%f\n",Begin,End);
+		}
 	}
-	//check if that was the last parse
+	//if that was the last parse
 	if(this->CurrentReadBlock < this->NumberReadBlocks)
 	{
 		//get the begin time of next event in the trace file
@@ -497,7 +541,8 @@ void Simulator::LoadPartialContacts()
 			abort();
 		}
 		//insert checkpoint into event list
-		Event *CP=new CheckPoint(Begin,StopLine,StopLine);
+		printf("the begin time of this checkPoint event: %f \n", Begin);
+		Event *CP=new CheckPoint(Begin,StopLine,StopLine);//specifies that a new contact import from the trace file should take place
 		SimList->InsertEvent(CP);
 		//SimList->PrintList();
 	}
@@ -536,26 +581,29 @@ void Simulator::LoadTraffic()
 {
 	int *PacketsFor = NULL;
 
-
+	string profileAttribute;
 	if(!Set->getBatchmode() && !Set->GUIon())
 	{
 		printf("Loading Traffic Scenario...");
 		fflush(stdout);
 	}
-
-	PacketsFor = Traffic->generateTraffic(Set->getTrafficType(), Set->getTrafficLoad());
+	if(Set->ProfileExists() && (profileAttribute = Set->GetProfileAttribute("epoch")) != "none")
+	{
+		Traffic->setEpoch(atof(profileAttribute.c_str()));
+	}
+	PacketsFor = Traffic->generateTraffic(Set->getTrafficType(), Set->getTrafficLoad());//PacketsFor: an array that contain the amount of packets each node would be received
 
 	if(!PacketsFor)
 	{
 		//Initialize statistics
-		for(int i=0;i<Set->getNN();i++)
+		for(int i=0;i< Set->getNN();i++)
 		{
 			Stats[i]->SetPktsForMe(0);
 		}
 	}
 	else
 	{
-		//Initialize statistics
+		//Initialize s
 		for(int i=0;i<Set->getNN();i++)
 		{
 			Stats[i]->SetPktsForMe(PacketsFor[i]);

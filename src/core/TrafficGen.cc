@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -39,6 +39,7 @@ TrafficGen::TrafficGen(int Seed, int Total, double duration, string presFile, Ev
 	this->SndPrdStart = 0.2 * this->traceDuration;
 	this->SndPrdStop = 0.8 * this->traceDuration;
 	this->presenceFilename = presFile;
+	this->epoch=21600;//the default epoch time is 6 hours
 	FillPresenceList(this->presenceFilename);
 
 	this->Sim = SimL;
@@ -57,6 +58,10 @@ TrafficGen::~TrafficGen(void )
 	return;
 }
 
+void TrafficGen::setEpoch(double Epoch)
+{
+	this->epoch=Epoch;
+}
 
 int *TrafficGen::generateTraffic(int trafficType, int NumPackets)
 {
@@ -98,7 +103,7 @@ void TrafficGen::SetTransPeriod(double SendPeriodStrt,double SendPeriodStop)
 
 /* FillPresenceList
  * ----------------
- * This method reads a special file from disk which contains the time of the first/last
+ * This method reads a special file(*presence.txt) from disk which contains the time of the first/last
  * contact (with some other node) for each network node. These time values correspond to
  * each node's presence during the trace duration. Two arrays (inPresence, outPresence)
  * are filled with the above information and a list with the IDs of the inactive nodes,
@@ -239,7 +244,7 @@ int *TrafficGen::CreateUniformTraffic(int NumPackets)
 	for (int i=0;i<this->TotalNodes;i++)
 	{
 		//printf("%d\t%f\t%f\n",i,inPresence[i],outPresence[i]);
-		if(inPresence[i] > 0 && outPresence[i] > 0)
+		if(inPresence[i] > 0 && outPresence[i] > 0)//in/outpresent arrays present the first/last time of each node in *presence.txt. For a inactivie node, their value is -1
 		{
 			active++;
 		}
@@ -247,7 +252,7 @@ int *TrafficGen::CreateUniformTraffic(int NumPackets)
 // 	printf("Active nodes: %d\n",active);
 	int *activeNodes=(int *)malloc(sizeof(int)*active);
 	int runner=0;
-	for (int i=0;i<this->TotalNodes;i++)
+	for (int i=0;i< this->TotalNodes;i++)
 	{
 		if(inPresence[i] > 0 && outPresence[i] > 0)
 		{
@@ -256,18 +261,19 @@ int *TrafficGen::CreateUniformTraffic(int NumPackets)
 		}
 	}
 	int totalPairs=active*(active-1);
-	trafficPair *activePairs=(trafficPair *)malloc(sizeof(trafficPair)*totalPairs);
+	trafficPair *activePairs=(trafficPair *)malloc(sizeof(trafficPair)*totalPairs);// it's a node-pair struct : int source, int dest
 	for(int i=0;i<totalPairs;i++)
 	{
 		activePairs[i].source=0;
 		activePairs[i].dest=0;
 	}
+
 	runner=0;
 	for(int i=0;i<active;i++)
 	{
 		for(int j=0;j<active;j++)
 		{
-			if(i == j)
+			if(i == j)// exclude it self.( never send msg to itself)
 			{
 				continue;
 			}
@@ -276,6 +282,8 @@ int *TrafficGen::CreateUniformTraffic(int NumPackets)
 			runner++;
 		}
 	}
+	
+
 // 	printf("All pairs are %d\n",runner);
 // 	for(int i=0;i<totalPairs;i++)
 // 	{
@@ -294,11 +302,15 @@ int *TrafficGen::CreateUniformTraffic(int NumPackets)
 	double commonOut=0.0;
 	int skipped=0;
 	int randomPair=-1;
-	for(int i=0;i<NumPackets;i++)
+
+	//chose a ramdom pair
+	for(int i=0;i<NumPackets;i++)//NumPackets is 10000 as default
 	{
-		randomPair=rand()%totalPairs;
+		randomPair=rand()%totalPairs;//0 ~ (totalPairs-1)
 		Sender=activePairs[randomPair].source;
 		Receiver=activePairs[randomPair].dest;
+
+		//--get the co-existed time interval for sender and receicer
 		//Get the first time instance that both the sender and the receiver exist to the network  
 		if(this->inPresence[Sender] > this->inPresence[Receiver])
 		{
@@ -318,36 +330,46 @@ int *TrafficGen::CreateUniformTraffic(int NumPackets)
 		{
 			commonOut=this->outPresence[Receiver];
 		}
+
+
+
+
 		//keep time interval inside warm-up and cool down periods
 		if(commonIn < this->SndPrdStart)
 		{
 			commonIn=this->SndPrdStart;
-		}
-		
+		}		
 		if(commonOut > this->SndPrdStop)
 		{
 			commonOut=this->SndPrdStop;
 		}
-		//check if the two nodes selected have a common time interval that are both present in the network 
+
+
+		//check if the sender appeared after the recevier get out
 		if(commonIn >= commonOut)
 		{
 			//skip packet creation (we will create less packets than NumPackets)
-// 			printf("Skipped: %d %d %f %f\n",Sender,Receiver,commonIn,commonOut);
+ 			//printf("Skipped: %d %d %f %f\n",Sender,Receiver,commonIn,commonOut);
 			skipped++;
 			continue;
 		}
-		insTime=(double)(rand()%(int)(commonOut-commonIn))+(int)commonIn;
-// 		printf("Scheduled: %d %d %f\n",Sender,Receiver,insTime);
-		trans=new Transmission(insTime,-1,Sender,Receiver);
-		this->Sim->InsertEvent(trans);
+		insTime=(double)(rand()%(int)(commonOut-commonIn))+(int)commonIn;// a time point between commonIn and commonOut
+		if(insTime<epoch)
+		insTime+=epoch;
+ 		//printf("Scheduled: %d %d %f\n",Sender,Receiver,insTime);
+		trans=new Transmission(insTime,-1,Sender,Receiver);//actually, "-1" is the sender_ID, which means the packet is coming from the application layer of the receiver node. So "Sender" is actually the receiver, and the "Receiver" is the packet_ID
+		this->Sim->InsertEvent(trans);//sim: event list, not a simulator object
 		PacketsFor[Receiver]++;
 	}
+
+	printf("generate the interactive times\n");
 	totalStatPkts = NumPackets-skipped;
-// 	printf("\nCreated %d packets (asked for %d)\n",totalStatPkts,NumPackets);
+printf("totalStatPkts should be : %d \n", totalStatPkts);
+ 	//printf("\nCreated %d packets (asked for %d)\n",totalStatPkts,NumPackets);
 	//free memory
 	free(activeNodes);
 	free(activePairs);
-	return PacketsFor;
+	return PacketsFor;// an array that contain the amount of packets each node would be received
 }
 
 
@@ -492,7 +514,12 @@ bool TrafficGen::isInactive(int nodeID)
 		return false;
 	}
 }
+void TrafficGen::increnmenttotalStatPkts(void)
+{
 
+totalStatPkts++;
+
+}
 
 int *TrafficGen::CreateSampleTraffic(int NumPackets)
 {

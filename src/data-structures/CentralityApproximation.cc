@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -37,6 +37,8 @@ CentralityApproximation::CentralityApproximation(int myID, int totalNodes)
 	numNodes = totalNodes;
 	prevTimePeriod = 0;
 	currTimePeriod = 0;
+	prevLP=0;
+	currLP=0;
 	timeUnit = SIX_HOURS;
 
 	if((prevTimeSlot = (bool *) malloc(numNodes * sizeof(bool))) == NULL)
@@ -76,14 +78,17 @@ CentralityApproximation::~CentralityApproximation()
 
 	return;
 }
-
+void CentralityApproximation::resetEpoch(int epoch)
+{
+	timeUnit=epoch;
+}
 
 void CentralityApproximation::connectionOccured(double currTime, int encID)
 {
-	updateTimeSlots(currTime);
+	updateTimeSlots(currTime);//check if it is in next time period(next 6 hours)
 
 	currConnectedNodes[encID] = true;
-	currTimeSlot[encID] = true;
+	currTimeSlot[encID] = true;//??
 
 	return;
 }
@@ -94,20 +99,21 @@ void CentralityApproximation::disconnectionOccured(double currTime, int encID)
 	updateTimeSlots(currTime);
 
 	currConnectedNodes[encID] = false;
-	if(fmod(currTime, timeUnit) > 0.0)
+	if(fmod(currTime, timeUnit) > 0.0)// it doesn't make any sense ???
 	{
-		currTimeSlot[encID] = true;
+		currTimeSlot[encID] = true;//??? still in the current time period (e.g. 10 mod 6 = 4)
 	}
 	else
-	{
-		currTimeSlot[encID] = false;
+	{	
+		printf("seems it just never happen\n");
+		currTimeSlot[encID] = false;//??? remainder is 0? next time period (e.g. 12 mod 6 =0 )  those are just my assumption
 	}
-
+ 
 	return;
 }
 
 
-void CentralityApproximation::updateTimeSlots(double currTime)
+void CentralityApproximation::updateTimeSlots(double currTime)// get the connection period ( e.g. 2 time units for last connection. 3 time units for this connection)
 {
 	int i;
 	unsigned long int newTimePeriod;
@@ -119,15 +125,15 @@ void CentralityApproximation::updateTimeSlots(double currTime)
 	{
 		return;
 	}
-	else if(newTimePeriod > currTimePeriod)
+	else if(newTimePeriod > currTimePeriod)//that means the dataset have to last for at least 6 hours. it will never happen in "debugging" dataset
 	{
-		if(newTimePeriod == currTimePeriod + 1)
+		if(newTimePeriod == currTimePeriod + 1)//when two nodes meet each other, they compare how many unique nodes they have met in the previous unit-time slot (S-Window) OR calculate the average of all pervious windows (C-Windows)
 		{
 			for(i = 0; i < numNodes; i++)
 			{
 				prevTimeSlot[i] = currTimeSlot[i];
 
-				if(currConnectedNodes[i])
+				if(currConnectedNodes[i])//currtimeslot is always consist with currconnectednodes
 				{
 					currTimeSlot[i] = true;
 				}
@@ -139,11 +145,15 @@ void CentralityApproximation::updateTimeSlots(double currTime)
 
 			prevTimePeriod = currTimePeriod;
 			currTimePeriod = newTimePeriod;
+			
+			prevLP=currLP;
+			currLP=LocalPopularity;
+			//LocalPopularity=0;
 		}
-		else
-		{
+		else//a gap in dataset
+		{		
 			for(i = 0; i < numNodes; i++)
-			{
+			{ 
 				if(currConnectedNodes[i])
 				{
 					prevTimeSlot[i] = true;
@@ -158,6 +168,11 @@ void CentralityApproximation::updateTimeSlots(double currTime)
 
 			prevTimePeriod = newTimePeriod - 1;
 			currTimePeriod = newTimePeriod;
+
+			prevLP=currLP;
+			currLP=LocalPopularity;
+			//LocalPopularity=0;
+	
 		}
 
 		return;
@@ -183,7 +198,7 @@ double CentralityApproximation::getLocalRank(double currTime, bool *myLocalCommu
 	/* Count my unique encounters with nodes in my local community */
 	localRank = 0.0;
 	if(prevTimePeriod != currTimePeriod)
-	{
+	{// curr - prev = 1
 		for(i = 0; i < numNodes; i++)
 		{
 			if((myLocalCommunity[i]) && (prevTimeSlot[i]))
@@ -193,7 +208,7 @@ double CentralityApproximation::getLocalRank(double currTime, bool *myLocalCommu
 		}
 	}
 	else
-	{
+	{//prev and curr are both "0"
 		for(i = 0; i < numNodes; i++)
 		{
 			if((myLocalCommunity[i]) && (currTimeSlot[i]))
@@ -205,6 +220,8 @@ double CentralityApproximation::getLocalRank(double currTime, bool *myLocalCommu
 
 	return localRank;
 }
+
+
 
 
 double CentralityApproximation::getGlobalRank(double currTime)
@@ -236,8 +253,117 @@ double CentralityApproximation::getGlobalRank(double currTime)
 			{
 				globalRank++;
 			}
-		}
+		} 
 	}
 
 	return globalRank;
+}
+
+double CentralityApproximation::getMobilityLocalRank(double currTime)
+{
+	updateTimeSlots(currTime);
+	/* Count my unique encounters with nodes in my local community */
+	if(prevTimePeriod != currTimePeriod)
+	{// curr - prev = 1
+			return prevLP;
+	}
+	else
+	{
+			return currLP;
+	}
+
+}
+
+
+
+
+
+
+
+void CentralityApproximation::incrementLocalPopularity(double currTime,int NID,bool *myLocalCommunity)//fff
+{
+	updateTimeSlots(currTime);
+
+	if(prevTimePeriod != currTimePeriod)//duplicated??? the else can be deleted. I guess
+	{// curr - prev = 1
+		
+			if((myLocalCommunity[NID]) && (prevTimeSlot[NID]))
+			{
+				this->LocalPopularity++;
+			}
+
+	}
+	else
+	{//prev and curr are both "0". Only for the first epoch
+
+			if((myLocalCommunity[NID]) && (currTimeSlot[NID]))
+			{
+				this->LocalPopularity++;
+			}
+			
+	}
+
+}
+ 
+int CentralityApproximation::getContactsBetweenNodeCommunities(bool *destCommunity)
+{
+	int NCF=0;
+/*
+	int counter=0;
+	for(int i = 0; i < numNodes; i++)
+	{
+		if(destCommunity[i])
+		counter++;
+	}
+*/
+	if(true)
+	{
+		for(int i = 0; i < numNodes; i++)
+		{
+			if(currTimeSlot[i] && destCommunity[i])
+			{
+				NCF++;
+			}
+			else if(currTimeSlot[i] && destCommunity[i] && i==this->nodeID){printf("it should not be printed\n");}
+		}
+	}
+	if (NCF==0)
+	return 0;
+	else
+	return NCF+1;
+}
+
+double CentralityApproximation::getLocalRankLouvain(double currTime, int *myLocalCommunity, int myCommID)
+{
+	int i;
+	double localRank;
+
+
+	updateTimeSlots(currTime);
+
+
+	/* Count my unique encounters with nodes in my local community */
+	localRank = 0.0;
+	if(prevTimePeriod != currTimePeriod)
+	{
+		for(i = 0; i < numNodes; i++)
+		{
+			if((myLocalCommunity[i] == myCommID) && (prevTimeSlot[i]))
+			{
+				localRank++;
+			}
+		}
+	}
+	else
+	{
+		for(i = 0; i < numNodes; i++)
+		{
+			if((myLocalCommunity[i] == myCommID) && (currTimeSlot[i]))
+			{
+				localRank++;
+			}
+		}
+	}
+
+	return localRank;
 }

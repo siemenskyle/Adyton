@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -547,7 +547,25 @@ public:
 	void setmaxN(int N){this->maxN=N;};
 };
 
+class LCandFSLouvain:public Packet
+{
+protected:
+	int *localCommunity;
+	bool **familiarSets;
+	int maxN;
+public:
+	LCandFSLouvain(double Time, int *LC, bool **FS, int PID);
+	~LCandFSLouvain(void);
+	virtual void setContents(void *data){return;};
+	virtual void *getContents(void){return NULL;};
+	virtual Packet *Duplicate(int hops){return NULL;};
+	virtual bool AccessPkt(void){return true;};
 
+	int *getLocalCommunity(void){return this->localCommunity;};
+	bool **getFamiliarSets(void){return this->familiarSets;};
+	
+	void setmaxN(int N){this->maxN=N;};
+};
 class BubbleSummary:public Packet
 {
 protected:
@@ -569,7 +587,66 @@ public:
 	bool *getLocalCommunity(void){return this->localCommunity;};
 	double getLocalRank(void){return this->localRank;};
 	double getGlobalRank(void){return this->globalRank;};
+	
 };
+
+class BubbleSummaryLouvain:public Packet
+{
+protected:
+	int numPackets;
+	struct PktDest *summaryVector;
+	int *localCommunity;
+	double localRank;
+	double globalRank;
+public:
+	BubbleSummaryLouvain(double Time, int numPkts, struct PktDest* sumVec, int *LC, double LR, double GR, int PID);
+	~BubbleSummaryLouvain(void);
+	virtual void setContents(void *data){return;};
+	virtual void *getContents(void){return NULL;};
+	virtual Packet *Duplicate(int hops){return NULL;};
+	virtual bool AccessPkt(void){return true;};
+
+	int getNumPackets(void){return this->numPackets;};
+	struct PktDest *getSummaryVector(void){return this->summaryVector;};
+	int *getLocalCommunity(void){return this->localCommunity;};
+	double getLocalRank(void){return this->localRank;};
+	double getGlobalRank(void){return this->globalRank;};
+	
+};
+
+class HCBFSummaryLouvain:public Packet
+{
+protected:
+	int numPackets;
+	struct PktDest *summaryVector;
+	int *localCommunity;
+	double localRank;
+	double globalUniqueRank;
+	double localUniqueRank;
+public:
+	HCBFSummaryLouvain(double Time, int numPkts, struct PktDest* sumVec, int *LC, double LR, double GUR,double LUR, int PID);
+	~HCBFSummaryLouvain(void);
+	virtual void setContents(void *data){return;};
+	virtual void *getContents(void){return NULL;};
+	virtual Packet *Duplicate(int hops){return NULL;};
+	virtual bool AccessPkt(void){return true;};
+
+	int getNumPackets(void){return this->numPackets;};
+	struct PktDest *getSummaryVector(void){return this->summaryVector;};
+	int *getLocalCommunity(void){return this->localCommunity;};
+	double getLocalRank(void){return this->localUniqueRank;};
+	double getGlobalRank(void){return this->globalUniqueRank;};
+	double getLocalMobilityRank(void){return this->localRank;};
+};
+
+
+
+
+
+
+
+
+
 
 
 /* PktDests

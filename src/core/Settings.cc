@@ -26,7 +26,10 @@
 	#define SETTINGS_H
 	#include "Settings.h"
 #endif
-
+#ifndef IDENTIFICATION_H
+	#define IDENTIFICATION_H
+	#include "Identification.h"
+#endif
 
 Settings::Settings()
 {
@@ -439,6 +442,31 @@ void Settings::setRT(int Rout)
 			this->RTname.assign("Direct");
 			break;
 		}
+		case FLOODING_RT:
+		{
+			this->RTname.assign("flooding");
+			break;		
+		}
+		case HCBF_RT:
+		{
+			suffix = "";
+
+			if(this->ProfileExists())
+			{
+				if((profileAttribute = this->GetProfileAttribute("kappa")) != "none")
+				{
+					suffix += ".kappa" + profileAttribute;
+				}
+
+				if((profileAttribute = this->GetProfileAttribute("familiarSetThreshold")) != "none")
+				{
+					suffix += ".familiarSetThreshold" + profileAttribute;
+				}
+			}
+
+			this->RTname.assign("hcbf" + suffix);
+			break;	
+		}
 		case EPIDEMIC_RT:
 		{
 			this->RTname.assign("Epidemic");
@@ -473,6 +501,11 @@ void Settings::setRT(int Rout)
 				if((profileAttribute = this->GetProfileAttribute("familiarSetThreshold")) != "none")
 				{
 					suffix += ".familiarSetThreshold" + profileAttribute;
+				}
+				
+				if((profileAttribute = this->GetProfileAttribute("communityDetect")) != "none")
+				{
+					suffix += ".commuityDetectModel" + profileAttribute;
 				}
 			}
 
@@ -1280,6 +1313,14 @@ bool Settings::isSingleCopy(void)
 		{
 			return true;
 		}
+		case FLOODING_RT:
+		{
+			return true;
+		}
+		case HCBF_RT:
+		{
+			return this->copyMode;
+		}
 		case EPIDEMIC_RT:
 		{
 			return false;
@@ -1363,6 +1404,14 @@ bool Settings::usesLimitedReplication(void)
 	switch(this->RT)
 	{
 		case DIRECT_RT:
+		{
+			return false;
+		}
+		case FLOODING_RT:
+		{
+			return false;
+		}
+		case HCBF_RT:
 		{
 			return false;
 		}

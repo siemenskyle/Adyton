@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -129,8 +129,8 @@ void ConnectionMap::PrintConnections(int NodeID)
 {
 	int *N=this->GetN(NodeID);
 	
-	printf("%d:",NodeID);
-	for(int i=0;i<this->NumberOfN(NodeID);i++)
+	printf("Node %d is connected to: ",NodeID);
+	for(int i=0;i < this->NumberOfN(NodeID);i++)
 	{
 		printf("%d\t",N[i]);
 	}

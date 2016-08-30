@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
 	/* Construct the UserInteraction amd Simulator objects */
 	UI = new UserInteraction();
-	Sim = new Simulator(UI->getSettings(argc, argv));
+	Sim = new Simulator(UI->getSettings(argc, argv));//set the setting by user's inputs
 
 
 	/* Perform the simulation */

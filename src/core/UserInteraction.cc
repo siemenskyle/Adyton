@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -34,7 +34,6 @@ UserInteraction::UserInteraction()
 	profileName="";
 	resDir ="";
 	trcDir = "";
-	customTrcPath="";
 	includedProfile = false;
 	modifiedResDir = false;
 	modifiedTrcDir = false;
@@ -84,13 +83,6 @@ UserInteraction::~UserInteraction()
 	TrafficTypenames.clear();
 
 	return;
-}
-
-string remove_ws( const std::string& str )
-{
-    std::string str_no_ws ;
-    for( char c : str ) if( !std::isspace(c) ) str_no_ws += c ;
-    return str_no_ws ;
 }
 
 
@@ -167,7 +159,7 @@ Settings *UserInteraction::getSettings(int argc, char *argv[])
 			{
 				parameter = string(argv[i]);
 				transform(parameter.begin(), parameter.end(), parameter.begin(), ::toupper);
-				printDetails(parameter);
+				printDetails(parameter);// detail of the -help 
 			}
 
 			exit(EXIT_SUCCESS);
@@ -177,7 +169,7 @@ Settings *UserInteraction::getSettings(int argc, char *argv[])
 			/* Parse each argument */
 			for(i = 1; i < argc; i += 2)
 			{
-				ParseArgs(argv[i], argv[i + 1]);
+				ParseArgs(argv[0], argv[i], argv[i + 1]);// set the "RT","TRC" etc according to user's input
 			}
 		}
 		else
@@ -212,15 +204,11 @@ Settings *UserInteraction::getSettings(int argc, char *argv[])
 	if(TRC != NOTSET)
 	{
 		Set->setContactTrace(TRC);
-		if(TRC == CUSTOM_TR)
-		{
-			processCustomtrc();
-		}
 	}
 
 
 	/* Set the routing protocol */
-	if(RT != NOTSET)
+	if(RT != NOTSET)//fff
 	{
 		Set->setRT(RT);
 	}
@@ -338,601 +326,248 @@ Settings *UserInteraction::getSettings(int argc, char *argv[])
 	return Set;
 }
 
-void UserInteraction::processCustomtrc(void)
+
+void UserInteraction::ParseArgs(char *com, char *option, char *value)
 {
-	string workingtrc="";
-	//Check if trace file exists
-	ifstream test1(customTrcPath);
-	ifstream test2("../trc/"+customTrcPath);
-	bool modDir=false;
-	if(modifiedTrcDir)
-	{
-		ifstream test3(trcDir+"/"+customTrcPath);
-		if(test3)
-		{
-			modDir=true;
-			workingtrc.assign(trcDir+"/"+customTrcPath);
-		}
-	}
-	if(test1)
-	{
-		workingtrc.assign(customTrcPath);
-	}
-	if(test2)
-	{
-		workingtrc.assign("../trc/"+customTrcPath);
-	}
-	if (!test1 && !test2 && !modDir)
-	{
-		printf("\n[Error] Cannot open file \"%s\". Please make sure this trace file exists.\n",customTrcPath.c_str());
-		printf("Tried the following locations:\n");
-		printf("- \"%s\"\n",customTrcPath.c_str());
-		printf("- \"../trc/%s\"\n",customTrcPath.c_str());
-		if(modifiedTrcDir)
-		{
-			printf("\t- \"%s/%s\"\n",trcDir.c_str(),customTrcPath.c_str());
-		}
-		printf("\n");
-		exit(EXIT_FAILURE);
-	}
-	//Get the trace name
-	string base_filename = workingtrc.substr(workingtrc.find_last_of("/\\") + 1);
-	string::size_type const p(base_filename.find_last_of('.'));
-	string scenario_name = base_filename.substr(0, p);
-	printf("Loading data from \"%s\".. ",workingtrc.c_str());
-	fflush(stdout);
-	
-	string contacts = tmpnam(nullptr);
-	string presence = tmpnam(nullptr);
-	ofstream contactsFile;
-	ofstream presenceFile;
-	string tmpContactsName(contacts + "_" + scenario_name + "_adyton");
-	string tmpPresenceName(presence + "_" + scenario_name + "_adyton");
-	contactsFile.open(tmpContactsName);
-	presenceFile.open(tmpPresenceName);
-	int readNN=-1;
-	int readACT=-1;
-	int readNoL=-1;
-	double readDUR=0.0;
-	double readSCAN=0.0;
-	string readPROCtime="";
-	int part=0;
-	string line="";
-	ifstream infile;
-	infile.open(workingtrc);
-	//count the number of lines
-	int totalLines=0;
-	while(getline(infile,line))
-	{
-		totalLines++;
-	}
-	int oldprogress=0;
-	double progress =0.0;
-	int fraction=0;
-	string progressIndicator("[0%]");
-	printf("%s",progressIndicator.c_str());
-	int currentLine=0;
-	infile.clear();
-	infile.seekg(0, infile.beg);
-	while(getline(infile,line))
-	{
-		if(line[0] == '#')
-		{
-			part++;
-			continue;
-		}
-		switch(part)
-		{
-			case 1:
-			{
-				string::size_type position = line.find("NN");
-				if (position != string::npos) 
-				{
-					line.erase(position,position+2);
-					line=remove_ws(line);
-					readNN=atoi(line.c_str());
-					//printf("%s\n",line.c_str());
-				}
-				position=line.find("ACT");
-				if (position != string::npos) 
-				{
-					line.erase(position,position+3);
-					line=remove_ws(line);
-					readACT=atoi(line.c_str());
-					//printf("%s\n",line.c_str());
-				}
-				position=line.find("NoL");
-				if (position != string::npos) 
-				{
-					line.erase(position,position+3);
-					line=remove_ws(line);
-					readNoL=atoi(line.c_str());
-					//printf("%s\n",line.c_str());
-				}
-				position=line.find("DUR");
-				if (position != string::npos) 
-				{
-					line.erase(position,position+3);
-					line=remove_ws(line);
-					readDUR=atof(line.c_str());
-					//printf("%s\n",line.c_str());
-				}
-				position=line.find("SCAN");
-				if (position != string::npos) 
-				{
-					line.erase(position,position+4);
-					line=remove_ws(line);
-					readSCAN=atof(line.c_str());
-					//printf("%s\n",line.c_str());
-				}
-				position=line.find("PROC");
-				if (position != string::npos)
-				{
-					line.erase(position,position+4);
-					line=remove_ws(line);
-					readPROCtime.assign(line);
-					//printf("%s\n",line.c_str());
-				}
-				break;
-			}
-			case 2:
-			{
-				presenceFile << line << endl;
-				break;
-			}
-			case 3:
-			{
-				contactsFile << line << endl;
-				break;
-			}
-			default:
-			{
-				printf("\n[Error] The provided trace file \"%s\" does not have a supported format!\n\n",workingtrc.c_str());
-			exit(EXIT_FAILURE);
-			}
-		}
-		currentLine++;
-		progress=((double)currentLine/(double)totalLines)*100.0;
-		fraction=(int)progress;
-		if(fraction > (oldprogress+4))
-		{
-			for(int i=0;i<(int)progressIndicator.length();i++)
-			{
-				printf("\b");
-			}
-			progressIndicator="["+ to_string(fraction) +"%]";
-			printf("%s",progressIndicator.c_str());
-			oldprogress=fraction;
-			fflush(stdout);
-		}
-	}
-	infile.close();
-	contactsFile.close();
-	presenceFile.close();
-	Set->setCustomTrcInfo(scenario_name, tmpContactsName, tmpPresenceName, readNN, readACT, readNoL, readDUR, readSCAN, readPROCtime, workingtrc);
-	for(int i=0;i<(int)progressIndicator.length();i++)
-	{
-		printf("\b");
-	}
-	printf("[OK] \n");
-	return;
-}
+	int val;
+	string flag(option);
+	string userInput(value);
 
-
-
-void UserInteraction::ParseArgs(char *option, char *value)
-{
-	int convertedValue=-1;
-	string optionType="";
-	string userInput="";
-	string userInputLowerCase="";
-	
-	/* Initializations */
-	optionType.assign(option);
-	userInput.assign(value);
-	userInputLowerCase.assign(value);
-	
-	/* Transform the arguments into uppercase */
-	transform(optionType.begin(), optionType.end(), optionType.begin(), ::toupper);
+	/* Transform the arguments in upper case */
+	transform(flag.begin(), flag.end(), flag.begin(), ::toupper);
 	transform(userInput.begin(), userInput.end(), userInput.begin(), ::toupper);
 
+	val = atoi(value);
 
-	/* Identify the type of the option */
-	if(!optionType.compare("-TRACE"))
+	if(!flag.compare("-TRACE"))
 	{
-		if(TRC == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				if(userInput.substr(userInput.find_last_of(".") + 1) == "ADY" || userInput.substr(userInput.find_last_of(".") + 1) == "ADYTON")
-				{
-					customTrcPath=userInputLowerCase;
-					convertedValue=CUSTOM_TR;
-				}
-				else
-				{
-					convertedValue = convertTraceToID(userInput);
-				}
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
+			val = convertTraceToID(userInput);
+		}
 
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_TR))
-			{
-				TRC = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-TRACE\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help TRACE' or `./Adyton -h TRACE'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+		if((TRC == NOTSET) && (val > 0) && (val < LAST_ENTRY_TR))
+		{
+			TRC = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-TRACE\" option.\n\n");
+			printf("\nError! Invalid value for the \"-TRACE\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help TRACE' or `./Adyton -h TRACE'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-RT"))
+	else if(!flag.compare("-RT"))
 	{
-		if(RT == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertProtoToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
+			val = convertProtoToID(userInput);//fff get the digital number of the given RT
+		}
 
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_RT))
-			{
-				RT = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-RT\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help RT' or `./Adyton -h RT'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+		if((RT == NOTSET) && (val > 0) && (val < LAST_ENTRY_RT))
+		{
+			RT = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-RT\" option.\n\n");
+			printf("\nError! Invalid value for the \"-RT\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help RT' or `./Adyton -h RT'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-CC"))
+	else if(!flag.compare("-CC"))
 	{
-		if(CC == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertCongestionControlToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
-
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_CC))
-			{
-				CC = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-CC\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help CC' or `./Adyton -h CC'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			val = convertCongestionControlToID(userInput);
+		}
+		if((CC == NOTSET) && (val > 0) && (val < LAST_ENTRY_CC))
+		{
+			CC = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-CC\" option.\n\n");
+			printf("\nError! Invalid value for the \"-CC\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help CC' or `./Adyton -h CC'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-SP"))
+	else if(!flag.compare("-SP"))
 	{
-		if(SP == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertSchedulingToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
-
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_SP))
-			{
-				SP = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-SP\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help SP' or `./Adyton -h SP'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			val = convertSchedulingToID(userInput);
+		}
+ 		if((SP == NOTSET) && (val > 0) && (val < LAST_ENTRY_SP))
+		{
+			SP = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-SP\" option.\n\n");
+			printf("\nError! Invalid value for the \"-SP\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help SP' or `./Adyton -h SP'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-DP"))
+	else if(!flag.compare("-DP"))
 	{
-		if(DP == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertDPToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
+			val = convertDPToID(userInput);
+		}
 
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_DP))
-			{
-				DP = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-DP\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help DP' or `./Adyton -h DP'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+ 		if((DP == NOTSET) && (val > 0) && (val < LAST_ENTRY_DP))
+		{
+			DP = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-DP\" option.\n\n");
+			printf("\nError! Invalid value for the \"-DP\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help DP' or `./Adyton -h DP'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-DM"))
+	else if(!flag.compare("-DM"))
 	{
-		if(DM == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertDMToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
+			val = convertDMToID(userInput);
+		}
 
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_DM))
-			{
-				DM = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-DM\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help DM' or `./Adyton -h DM'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+		if((DM == NOTSET) && (val > 0) && (val < LAST_ENTRY_DM))
+		{
+			DM = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-DM\" option.\n\n");
+			printf("\nError! Invalid value for the \"-DM\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help DM' or `./Adyton -h DM'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-OUTPUT"))
+	else if(!flag.compare("-OUTPUT"))
 	{
-		if(OUT == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertOutputTypeToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
+			val = convertOutputTypeToID(userInput);
+		}
 
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_OUT))
-			{
-				OUT = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-OUTPUT\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help OUTPUT' or `./Adyton -h OUTPUT'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+		if((OUT == NOTSET) && (val > 0) && (val < LAST_ENTRY_OUT))
+		{
+			OUT = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-OUTPUT\" option.\n\n");
+			printf("\nError! Invalid value for the \"-OUTPUT\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help OUTPUT' or `./Adyton -h OUTPUT'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-TRAFFIC_TYPE"))
+	else if(!flag.compare("-TRAFFIC_TYPE"))
 	{
-		if(TT == NOTSET)
+		if(!isNumber(userInput))
 		{
-			if(!isNumber(userInput))
-			{
-				convertedValue = convertTrafficTypeToID(userInput);
-			}
-			else
-			{
-				convertedValue = atoi(value);
-			}
+			val = convertTrafficTypeToID(userInput);
+		}
 
-			if((convertedValue > 0) && (convertedValue < LAST_ENTRY_TT))
-			{
-				TT = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-TRAFFIC_TYPE\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help TRAFFIC_TYPE' or `./Adyton -h TRAFFIC_TYPE'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+		if((TT == NOTSET) && (val > 0) && (val < LAST_ENTRY_TT))
+		{
+			TT = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-TRAFFIC_TYPE\" option.\n\n");
+			printf("\nError! Invalid value for the \"-TRAFFIC_TYPE\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help TRAFFIC_TYPE' or `./Adyton -h TRAFFIC_TYPE'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-TRAFFIC_LOAD"))
+	else if(!flag.compare("-TRAFFIC_LOAD"))
 	{
-		if(NP == NOTSET)
+		if((NP == NOTSET) && (val > 0))
 		{
-			convertedValue = atoi(value);
-
-			if(convertedValue > 0)
-			{
-				NP = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-TRAFFIC_LOAD\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help TRAFFIC_LOAD' or `./Adyton -h TRAFFIC_LOAD'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			NP = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-TRAFFIC_LOAD\" option.\n\n");
+			printf("\nError! Invalid value for the \"-TRAFFIC_LOAD\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help TRAFFIC_LOAD' or `./Adyton -h TRAFFIC_LOAD'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-TTL"))
+	else if(!flag.compare("-TTL"))
 	{
-		if(TTL == NOTSET)
+		if((TTL == NOTSET) && (val > 0))
 		{
-			convertedValue = atoi(value);
-
-			if(convertedValue > 0)
-			{
-				TTL = convertedValue;
-			}
-			else if(convertedValue <= 0)
-			{
-				TTL = INFINITE;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-TTL\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help TTL' or `./Adyton -h TTL'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			TTL = val;
+		}
+		else if((TTL == NOTSET) && (val <= 0))
+		{
+			TTL = INFINITE;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-TTL\" option.\n\n");
+			printf("\nError! Invalid value for the \"-TTL\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help TTL' or `./Adyton -h TTL'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-BUFFER"))
+	else if(!flag.compare("-BUFFER"))
 	{
-		if(BUF == NOTSET)
+		if((BUF == NOTSET) && (val > 0))
 		{
-			convertedValue = atoi(value);
-
-			if(convertedValue > 0)
-			{
-				BUF = convertedValue;
-			}
-			else if(convertedValue <= 0)
-			{
-				BUF = INFINITE;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-BUFFER\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help BUFFER' or `./Adyton -h BUFFER'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			BUF = val;
+		}
+		else if((BUF == NOTSET) && (val <= 0))
+		{
+			BUF = INFINITE;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-BUFFER\" option.\n\n");
+			printf("\nError! Invalid value for the \"-BUFFER\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help BUFFER' or `./Adyton -h BUFFER'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-REP"))
+	else if(!flag.compare("-REP"))
 	{
-		if(REP == NOTSET)
+		if((REP == NOTSET) && (val > 0))
 		{
-			convertedValue = atoi(value);
-
-			if(convertedValue > 0)
-			{
-				REP = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-REP\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help REP' or `./Adyton -h REP'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			REP = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-REP\" option.\n\n");
+			printf("\nError! Invalid value for the \"-REP\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help REP' or `./Adyton -h REP'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-SPLIT"))
+	else if(!flag.compare("-SPLIT"))
 	{
-		if(SPLIT == NOTSET)
+		if((SPLIT == NOTSET) && (val > 0))
 		{
-			convertedValue = atoi(value);
-
-			if(convertedValue > 0)
-			{
-				SPLIT = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-SPLIT\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help SPLIT' or `./Adyton -h SPLIT'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			SPLIT = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-SPLIT\" option.\n\n");
+			printf("\nError! Invalid value for the \"-SPLIT\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help SPLIT' or `./Adyton -h SPLIT'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-SEED"))
+	else if(!flag.compare("-SEED"))
 	{
-		if(SEED == NOTSET)
+		if((SEED == NOTSET) && (val >= 0))
 		{
-			convertedValue = atoi(value);
-
-			if(convertedValue >= 0)
-			{
-				SEED = convertedValue;
-			}
-			else
-			{
-				printf("\nError! Invalid value for the \"-SEED\" option: %s\n", value);
-				printf("For details about the available options, type `./Adyton -help SEED' or `./Adyton -h SEED'.\n\n");
-				exit(EXIT_FAILURE);
-			}
+			SEED = val;
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-SEED\" option.\n\n");
+			printf("\nError! Invalid value for the \"-SEED\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help SEED' or `./Adyton -h SEED'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-PROFILE"))
+	else if(!flag.compare("-PROFILE"))
 	{
 		if(!includedProfile)
 		{
@@ -948,11 +583,12 @@ void UserInteraction::ParseArgs(char *option, char *value)
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-PROFILE\" option.\n\n");
+			printf("\nError! Invalid value for the \"-PROFILE\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help SEED' or `./Adyton -h SEED'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-RES_DIR"))
+	else if(!flag.compare("-RES_DIR"))
 	{
 		if(!modifiedResDir)
 		{
@@ -961,11 +597,12 @@ void UserInteraction::ParseArgs(char *option, char *value)
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-RES_DIR\" option.\n\n");
+			printf("\nError! Invalid value for the \"-RES_DIR\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help RES_DIR' or ./Adyton -h RES_DIR'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-TRC_DIR"))
+	else if(!flag.compare("-TRC_DIR"))
 	{
 		if(!modifiedTrcDir)
 		{
@@ -974,17 +611,21 @@ void UserInteraction::ParseArgs(char *option, char *value)
 		}
 		else
 		{
-			printf("\nError! More than one values have been given for the \"-TRC_DIR\" option.\n\n");
+			printf("\nError! Invalid value for the \"-TRC_DIR\" option: %s\n", value);
+			printf("For details about the available options, type `./Adyton -help TRC_DIR' or ./Adyton -h TRC_DIR'.\n\n");
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-BATCH"))
+	else if(!flag.compare("-BATCH"))
 	{
-		if(!userInput.compare("ON"))
+		string tmp(value);
+		transform(tmp.begin(), tmp.end(), tmp.begin(), ::toupper);
+
+		if(!tmp.compare("ON"))
 		{
 			BTCH = true;
 		}
-		else if(!userInput.compare("OFF"))
+		else if(!tmp.compare("OFF"))
 		{
 			BTCH = false;
 		}
@@ -995,13 +636,16 @@ void UserInteraction::ParseArgs(char *option, char *value)
 			exit(EXIT_FAILURE);
 		}
 	}
-	else if(!optionType.compare("-GUI"))
+	else if(!flag.compare("-GUI"))
 	{/* Experimental use */
-		if(!userInput.compare("ON"))
+		string tmp(value);
+		transform(tmp.begin(), tmp.end(), tmp.begin(), ::toupper);
+
+		if(!tmp.compare("ON"))
 		{
 			GUI = true;
 		}
-		else if(!userInput.compare("OFF"))
+		else if(!tmp.compare("OFF"))
 		{
 			GUI = false;
 		}
@@ -1034,7 +678,7 @@ bool UserInteraction::isNumber(const string& s)
 int UserInteraction::convertTraceToID(const string& s)
 {
 	map<string,int>::iterator it;
-	it = Tracenames.find(s);
+	it = Tracenames.find(s);//fff
 
 
 	if (it != Tracenames.end())
@@ -1048,7 +692,7 @@ int UserInteraction::convertTraceToID(const string& s)
 }
 
 
-int UserInteraction::convertProtoToID(const string& s)
+int UserInteraction::convertProtoToID(const string& s)//fff
 {
 	map<string,int>::iterator it;
 	it = RTnames.find(s);
@@ -1572,8 +1216,11 @@ void UserInteraction::initTracenames()
 }
 
 
-void UserInteraction::initRTnames()
+void UserInteraction::initRTnames()//fff
 {
+	RTnames["FLOODING"]=FLOODING_RT;
+	RTnames["FLOOD"]=FLOODING_RT;
+	RTnames["HCBF"]=HCBF_RT;
 	RTnames["DIRECT"] = DIRECT_RT;
 	RTnames["DIRECT DELIVERY"] = DIRECT_RT;
 	RTnames["DIRECT-DELIVERY"] = DIRECT_RT;
@@ -1738,23 +1385,6 @@ void UserInteraction::initRTnames()
 	RTnames["LSFSPRAYANDFOCUS"] = LSFSF_RT;
 	RTnames["LSFSPRAY&FOCUS"] = LSFSF_RT;
 	RTnames["LSFSPRAYFOCUS"] = LSFSF_RT;
-
-	RTnames["CNF"] = CNF_RT;
-	RTnames["CAF"] = CNF_RT;
-	RTnames["C&F"] = CNF_RT;
-	RTnames["CF"] = CNF_RT;
-	RTnames["COMPARE AND FORWARD"] = CNF_RT;
-	RTnames["COMPARE-AND-FORWARD"] = CNF_RT;
-	RTnames["COMPARE_AND_FORWARD"] = CNF_RT;
-	RTnames["COMPAREANDFORWARD"] = CNF_RT;
-	RTnames["COMPARE & FORWARD"] = CNF_RT;
-	RTnames["COMPARE-&-FORWARD"] = CNF_RT;
-	RTnames["COMPARE_&_FORWARD"] = CNF_RT;
-	RTnames["COMPARE&FORWARD"] = CNF_RT;
-	RTnames["COMPARE FORWARD"] = CNF_RT;
-	RTnames["COMPARE-FORWARD"] = CNF_RT;
-	RTnames["COMPARE_FORWARD"] = CNF_RT;
-	RTnames["COMPAREFORWARD"] = CNF_RT;
 
 	RTnames["CNR"] = CNR_RT;
 	RTnames["CAR"] = CNR_RT;
@@ -2106,7 +1736,7 @@ void UserInteraction::printLicence()
 	printf("               |___/                \n");
 
 	/* Print a short notice about the software license */
-	printf("\nAdyton  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,\n");
+	printf("\nAdyton  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,\n");
 	printf("and Evangelos Papapetrou\n");
 	printf("This program comes with ABSOLUTELY NO WARRANTY; for details type `./Adyton warranty'.\n");
 	printf("This is free software, and you are welcome to redistribute it\n");
@@ -2114,7 +1744,7 @@ void UserInteraction::printLicence()
 
 	return;
 }
-
+//the detail of HELP
 void UserInteraction::printDetails(string param)
 {
 	if(!param.compare("-TRACE") || !param.compare("TRACE"))
@@ -2167,12 +1797,11 @@ void UserInteraction::printDetails(string param)
 		printf("| %-35s | %-16s | %-20s |\n","MSF Spray and Wait","9","MSF-SNW");
 		printf("| %-35s | %-16s | %-20s |\n","PRoPHET Spray and Wait","10","PROPHET-SNW");
 		printf("| %-35s | %-16s | %-20s |\n","LSF Spray and Focus","11","LSF-SNF");
-		printf("| %-35s | %-16s | %-20s |\n","Compare and Forward","12","CNF");
-		printf("| %-35s | %-16s | %-20s |\n","Compare and Replicate","13","CNR");
-		printf("| %-35s | %-16s | %-20s |\n","Encounter-Based Routing","14","EBR");
-		printf("| %-35s | %-16s | %-20s |\n","Delegation Forwarding","15","DF");
-		printf("| %-35s | %-16s | %-20s |\n","Coordinated Delegation Forwarding","16","COORD");
-		printf("| %-35s | %-16s | %-20s |\n","Optimal Routing","17","OPTIMAL");
+		printf("| %-35s | %-16s | %-20s |\n","Compare and Replicate","12","CNR");
+		printf("| %-35s | %-16s | %-20s |\n","Encounter-Based Routing","13","EBR");
+		printf("| %-35s | %-16s | %-20s |\n","Delegation Forwarding","14","DF");
+		printf("| %-35s | %-16s | %-20s |\n","Coordinated Delegation Forwarding","15","COORD");
+		printf("| %-35s | %-16s | %-20s |\n","Optimal Routing","16","OPTIMAL");
 		printf("+-------------------------------------------------------------------------------+\n\n");
 	}
 	else if(!param.compare("-CC") || !param.compare("CC"))

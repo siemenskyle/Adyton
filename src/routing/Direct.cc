@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -69,10 +69,11 @@ void Direct::Contact(double CTime, int NID)
 	/* Send all packets that have NID as destination */
 	pkts = Buf->getPackets(NID);
 	for(i = 1; i <= pkts[0]; i++)
-	{
+	{ 
 		//Add packets to scheduler
 		sch->addPacket(pkts[i],NULL);
 	}
+	Stat->Dsent+=pkts[0];
 	free(pkts);
 	//Apply scheduling
 	int *outgoing=sch->getOutgoingPackets();

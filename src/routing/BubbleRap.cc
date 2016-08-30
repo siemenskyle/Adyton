@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -35,9 +35,11 @@ BubbleRap::BubbleRap(PacketPool* PP, MAC* mc, PacketBuffer* Bf, int NID, Statist
 	string profileAttribute;
 	InterCopyOn=false;
 	IntraCopyOn=false;
-
-	ranking = new CentralityApproximation(NID, Set->getNN());
-	labeling = new CommunityDetection(NID, Set->getNN());
+	
+	//if(S->getCommDetect() == KMEANS_CM)
+	//{
+	ranking = new CentralityApproximation(NID, Set->getNN(),G);
+	labeling = new BubbleCMFS(NID, Set->getNN(), G, S);
 	
 	if(S->ProfileExists() && (profileAttribute = S->GetProfileAttribute("familiarSetThreshold")) != "none")
 	{
@@ -48,6 +50,12 @@ BubbleRap::BubbleRap(PacketPool* PP, MAC* mc, PacketBuffer* Bf, int NID, Statist
 	{
 		labeling->setKappa(atof(profileAttribute.c_str()));
 	}
+	/*}
+	else
+	{
+		printf("no other comm detect models implemented yet\n");
+		exit(1);
+	}*/
 	
 	if(S->ProfileExists() && (profileAttribute = S->GetProfileAttribute("multi-copy")) != "none")
 	{
@@ -67,7 +75,9 @@ BubbleRap::BubbleRap(PacketPool* PP, MAC* mc, PacketBuffer* Bf, int NID, Statist
 			printf("Currently two multi-copy modes are supported: (1) all  (2) inter\n");
 			exit(1);
 		}
+	
 	}
+		
 	return;
 }
 
@@ -328,7 +338,7 @@ void BubbleRap::ReceptionData(Header* hd, Packet* pkt, int PID, double CurrentTi
 
 void BubbleRap::ReceptionReqLCandFS(Header *hd, Packet *pkt, int PID, double CurrentTime)
 {
-	bool *myLocalCommunity;
+	int *myLocalCommunity;
 	bool **myFamiliarSets;
 	Packet *responsePacket;
 	Header *responseHeader;
@@ -341,10 +351,12 @@ void BubbleRap::ReceptionReqLCandFS(Header *hd, Packet *pkt, int PID, double Cur
 	/* Create a response packet containing my Local Community and my Familiar Sets */
 	myLocalCommunity = labeling->cloneLocalCommunity(CurrentTime);
 	myFamiliarSets = labeling->cloneFamiliarSets(CurrentTime);
-	responsePacket = new LCandFS(CurrentTime, myLocalCommunity, myFamiliarSets, 0);
+
+	responsePacket = new LCandFSLouvain(CurrentTime, myLocalCommunity, myFamiliarSets, 0);
+
 	responseHeader = new BasicHeader(this->NodeID, hd->GetprevHop());
 	responsePacket->setHeader(responseHeader);
-	((LCandFS *)responsePacket)->setmaxN(Set->getNN());
+	((LCandFSLouvain *)responsePacket)->setmaxN(Set->getNN());
 	pktPool->AddPacket(responsePacket);
 
 
@@ -357,7 +369,7 @@ void BubbleRap::ReceptionReqLCandFS(Header *hd, Packet *pkt, int PID, double Cur
 	
 	/* Delete the request packet to free memory */
 	pktPool->ErasePacket(PID);
-
+	
 	return;
 }
 
@@ -368,8 +380,8 @@ void BubbleRap::ReceptionLCandFS(Header *hd,Packet *pkt,int PID,double CurrentTi
 	int *allPackets;
 	double myLocalRank;
 	double myGlobalRank;
-	bool *myLocalCommunity;
-	bool *encLocalCommunity;
+	int *myLocalCommunity;
+	int *encLocalCommunity;
 	bool **encFamiliarSets;
 	struct PktDest *mySummaryVector;
 	Packet *responsePacket;
@@ -382,8 +394,8 @@ void BubbleRap::ReceptionLCandFS(Header *hd,Packet *pkt,int PID,double CurrentTi
 
 
 	/* Get packet contents */
-	encLocalCommunity = ((LCandFS *) pkt)->getLocalCommunity();
-	encFamiliarSets = ((LCandFS *) pkt)->getFamiliarSets();
+	encLocalCommunity = ((LCandFSLouvain *) pkt)->getLocalCommunity();
+	encFamiliarSets = ((LCandFSLouvain *) pkt)->getFamiliarSets();
 	
 
 	/* Update my bubble */
@@ -403,11 +415,11 @@ void BubbleRap::ReceptionLCandFS(Header *hd,Packet *pkt,int PID,double CurrentTi
 
 	/* Get my bubble information */
 	myLocalCommunity = labeling->cloneLocalCommunity(CurrentTime);
-	myLocalRank = ranking->getLocalRank(CurrentTime, myLocalCommunity);
+	myLocalRank = ranking->getLocalRankLouvain(CurrentTime, myLocalCommunity, 1);
 	myGlobalRank = ranking->getGlobalRank(CurrentTime);
 	
 	/* Create a response packet containing bubble information and summary vector */
-	responsePacket = new BubbleSummary(CurrentTime, allPackets[0], mySummaryVector, myLocalCommunity, myLocalRank, myGlobalRank, 0);
+	responsePacket = new BubbleSummaryLouvain(CurrentTime, allPackets[0], mySummaryVector, myLocalCommunity, myLocalRank, myGlobalRank, 0);
 	responseHeader = new BasicHeader(this->NodeID, hd->GetprevHop());
 	responsePacket->setHeader(responseHeader);
 	pktPool->AddPacket(responsePacket);
@@ -422,6 +434,7 @@ void BubbleRap::ReceptionLCandFS(Header *hd,Packet *pkt,int PID,double CurrentTi
 	#endif
 	
 	free(allPackets);
+	
 	/* Delete the packet to free memory */
 	pktPool->ErasePacket(PID);
 	return;
@@ -437,8 +450,8 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 	bool *myRequestMarks=NULL;
 	bool encBetterCarrier=true;
 	bool IamBetterGlobally=false;
-	bool *encLocalCommunity=NULL;
-	bool *myLocalCommunity=NULL;
+	int *encLocalCommunity=NULL;
+	int *myLocalCommunity=NULL;
 	double encLocalRank=0.0;
 	double myLocalRank=0.0;
 	double encGlobalRank=0.0;
@@ -454,17 +467,19 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 
 
 	/* Get packet contents */
-	encNumPkts = ((BubbleSummary *) pkt)->getNumPackets();
-	encSummaryVector = ((BubbleSummary *) pkt)->getSummaryVector();
-	encLocalCommunity = ((BubbleSummary *) pkt)->getLocalCommunity();
-	encLocalRank = ((BubbleSummary *) pkt)->getLocalRank();
-	encGlobalRank = ((BubbleSummary *) pkt)->getGlobalRank();
+	encNumPkts = ((BubbleSummaryLouvain *) pkt)->getNumPackets();
+	encSummaryVector = ((BubbleSummaryLouvain *) pkt)->getSummaryVector();
+	encLocalCommunity = ((BubbleSummaryLouvain *) pkt)->getLocalCommunity();
+	encLocalRank = ((BubbleSummaryLouvain *) pkt)->getLocalRank();
+	encGlobalRank = ((BubbleSummaryLouvain *) pkt)->getGlobalRank();
 
 
 	/* Get my bubble information */
+	int myCommunity = labeling->getMyCommunity();
 	myLocalCommunity = labeling->cloneLocalCommunity(CurrentTime);
-	myLocalRank = ranking->getLocalRank(CurrentTime, myLocalCommunity);
+	myLocalRank = ranking->getLocalRankLouvain(CurrentTime, myLocalCommunity, myCommunity);
 	myGlobalRank = ranking->getGlobalRank(CurrentTime);
+	
 
 
 	/* Initialize the request vector */
@@ -486,24 +501,24 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 		encBetterCarrier = true;
 		IamBetterGlobally = false;
 
-		if(myLocalCommunity[encSummaryVector[i].Dest])
+		if(myLocalCommunity[encSummaryVector[i].Dest] == myCommunity)
 		{
-			if((encLocalCommunity[encSummaryVector[i].Dest]) && (encLocalRank >= myLocalRank))
+			if((encLocalCommunity[encSummaryVector[i].Dest] == myCommunity) && (encLocalRank >= myLocalRank))
 			{
 				encBetterCarrier = true;
 			}
-			else if((encLocalCommunity[encSummaryVector[i].Dest]) && (encLocalRank < myLocalRank))
+			else if((encLocalCommunity[encSummaryVector[i].Dest] == myCommunity) && (encLocalRank < myLocalRank))
 			{
 				encBetterCarrier = false;
 			}
-			else if(!encLocalCommunity[encSummaryVector[i].Dest])
+			else if(encLocalCommunity[encSummaryVector[i].Dest] != myCommunity)
 			{
 				encBetterCarrier = false;
 			}
 		}
 		else
 		{
-			if(encLocalCommunity[encSummaryVector[i].Dest])
+			if(encLocalCommunity[encSummaryVector[i].Dest] == myCommunity)
 			{
 				encBetterCarrier = true;
 			}
@@ -520,6 +535,7 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 
 		if(!encBetterCarrier)
 		{
+			Stat->incrForward++;
 			/* Add the packet in the request vector */
 			reqPos++;
 
@@ -529,6 +545,10 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 			
 			myRequestMarks=(bool *) realloc(myRequestMarks, (reqPos + 1)*sizeof(bool));
 			myRequestMarks[reqPos] = IamBetterGlobally;
+		}
+	else
+		{
+			Stat->incrNotForward++;
 		}
 	}
 	free(myLocalCommunity);
@@ -551,6 +571,7 @@ void BubbleRap::ReceptionBubbleSummary(Header *hd, Packet *pkt, int PID, double 
 	
 	/* Delete the packet to free memory */
 	pktPool->ErasePacket(PID);
+	
 	return;
 }
 
@@ -665,4 +686,8 @@ void BubbleRap::SendPacket(double STime, int pktID,int nHop,int RepValue)
 	}
 
 	return;
+}
+int BubbleRap::amountOfMyneighbors(void)
+{
+	return labeling->getCommunityMembersAmount();
 }

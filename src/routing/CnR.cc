@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -794,10 +794,6 @@ void CnR::ReceptionRequest(Header *hd,Packet *pkt,int PID,double CurrentTime)
 		for(int i=1;i<=outgoing[0];i++)
 		{
 			SendPacket(CurrentTime,outgoing[i],hd->GetprevHop(),1);
-			if(Set->isSingleCopy())
-			{
-				Buf->removePkt(outgoing[i]);
-			}
 		}
 		free(outgoing);
 	}

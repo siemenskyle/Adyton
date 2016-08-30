@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -149,7 +149,7 @@ void PacketBuffer::enableBufferRecording()
  * Adds a new packet to the buffer. In the case of full buffer a packet is discarded 
  * according to the dropping policy given as user input.
  */
-bool PacketBuffer::addPkt(int pktID, int Dest,int Src,double CurTime, int hops, int prev, double CrtTime)
+bool PacketBuffer::addPkt(int pktID, int Dest,int Src,double CurTime, int hops, int prev, double CrtTime)//CrtTime: start time
 {
 	double drpCrtTime;
 	PacketEntry *tmp;
@@ -165,7 +165,7 @@ bool PacketBuffer::addPkt(int pktID, int Dest,int Src,double CurTime, int hops, 
 	/* Check if the packet exists */
 	for(it = Entries.begin(); it != Entries.end(); ++it)
 	{
-		if((*it)->pktID == pktID && !((*it)->Encoded))
+		if((*it)->pktID == pktID && !((*it)->Encoded))//??? what is "Encoded"
 		{
 			return false;
 		}
@@ -197,9 +197,13 @@ bool PacketBuffer::addPkt(int pktID, int Dest,int Src,double CurTime, int hops, 
 
 
 	/* Add the new packet */
+	#ifdef PACKET_BUFFER_DEBUG
+	printf("this packet: %d has been added into node:%d 's buffer\n",pktID,Src);
+	#endif
 	tmp = new PacketEntry(pktID, Dest,Src, CurTime, hops, prev, CrtTime);
 	Entries.push_back(tmp);
 	PacketNum++;
+	this->Stat->pktadded++;
 // 	printf("%d:Added packet %d to the buffer\n",this->NID,pktID);
 
 	if(bufferRecording)
@@ -1214,6 +1218,7 @@ int *PacketBuffer::getAllPackets(void)
 		}
 		else if((*it)->Encoded)
 		{
+		printf("it is an Encoded packet\n");
 			if((*it)->mimic == -1)
 			{
 				for(int i=0;i<(*it)->CodingDepth;i++)
@@ -1246,7 +1251,7 @@ int *PacketBuffer::getAllPackets(void)
  * Returns an array that contains all the packet IDs (both native and encoded) that exist 
  * inside the packet buffer and are destined to node with ID "destination".
  */
-int *PacketBuffer::getPacketsNotDestinedTo(int destination)
+int *PacketBuffer::getPacketsNotDestinedTo(int destination)///FFF
 {
 	int pos;
 	int *pkts;
@@ -2363,6 +2368,7 @@ void PacketBuffer::DropDeadPackets(void)
 	{
 		if((*it)->Encoded)
 		{
+			
 			pos=-1;
 			delflag=false;
 			for(int i=0;i<(*it)->CodingDepth;i++)
@@ -2394,8 +2400,9 @@ void PacketBuffer::DropDeadPackets(void)
 			}
 		}
 		else
-		{
-			if((SGod->getSimTime() - (*it)->CreationTime) > TTL)
+		{	int temp=(SGod->getSimTime() - (*it)->CreationTime);
+			//printf("%d\n",temp);
+			if(temp > TTL)
 			{
 				if(bufferRecording)
 				{
@@ -3095,4 +3102,124 @@ void PacketBuffer::writeString(string outputData)
 	this->SGod->writeString(outputData);
 
 	return;
+}
+
+void PacketBuffer::setMaxCBC(int cbcValue, int cbc_NodeID, int pktID)
+{
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		if(pktID== (*it)->pktID)
+		{
+		(*it)->setCBC(cbcValue,cbc_NodeID);
+		//(*it)->CBC_node=cbc_NodeID;
+		}
+	}
+	
+}
+
+void PacketBuffer::setMaxNCF(int ncfValue, int ncf_NodeID, int pktID)
+{
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		if(pktID== (*it)->pktID)
+		{
+		(*it)->NCF=ncfValue;
+		(*it)->NCF_node=ncf_NodeID;
+		}
+	}
+	
+}
+
+void PacketBuffer::setMaxUI(int UIValue, int UI_NodeID, int pktID)
+{
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		if(pktID== (*it)->pktID)
+		{
+		(*it)->UI=UIValue;
+		(*it)->UI_node=UI_NodeID;
+		}
+	}
+	
+}
+
+void PacketBuffer::setMaxLP(int LPValue, int LP_NodeID, int pktID)
+{
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		if(pktID== (*it)->pktID)
+		{
+		(*it)->LP=LPValue;
+		(*it)->LP_node=LP_NodeID;
+		printf("why~\n");
+		}
+	}
+	
+}
+
+int PacketBuffer::getMaxUI(int pktID)
+{
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		if(pktID== (*it)->pktID)
+		{
+		return (*it)->UI;
+		}
+	}
+	return 0;
+
+}
+
+int PacketBuffer::getMaxLP(int pktID)
+{
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		if(pktID== (*it)->pktID)
+		{
+		return (*it)->LP;
+		}
+	}
+	return 0;
+
+}
+
+int PacketBuffer::checkAllPkts(int nodeID)
+{
+	int totalPkts=0;
+	//printf("try to get the relative pktinfo according to pktID: \n");
+	list<PacketEntry*>::iterator it;
+	if(!Entries.empty())
+	{
+	//printf("the pakcet in node:%d's buffer\n",nodeID);
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		//printf("packet id is :%d ,its CBC_node is:%d\n",(*it)->pktID,(*it)->CBC_node);
+		totalPkts++;
+	}
+	}
+	return totalPkts;
+
+}
+
+PacketEntry *PacketBuffer::getPktInfo(int pktID)
+{
+	//printf("try to get the relative pktinfo according to pktID:%d \n",pktID);
+	list<PacketEntry*>::iterator it;
+	for (it=Entries.begin();it!=Entries.end();it++)
+	{
+		//printf("packet id is :%d \n",(*it)->pktID);
+		
+		if(pktID== (*it)->pktID)
+		{
+		return *it;
+		}
+	}
+	printf("cannot find the pktinfo to return\n");
+	return NULL;
 }

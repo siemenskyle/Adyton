@@ -38,6 +38,14 @@
 	#include "Settings.h"
 #endif
 
+#ifndef LOUVAIN_H
+	#define LOUVAIN_H
+	#include "../community-detection/Louvain.h"
+#endif
+#ifndef PACKET_ENTRY_H
+	#define PACKET_ENTRY_H
+	#include "PacketEntry.h"
+#endif
 
 class Node;
 using namespace std;
@@ -97,6 +105,9 @@ private:
 	int EncodingsTypeA;
 	int EncodingsTypeB;
 	int EncodedTransmissions;
+	
+	double lastCommUpdate;
+	double commUpdateInterval;
 
 	string outputFilename;
 	FILE *outFile;
@@ -143,5 +154,18 @@ public:
 	void deleteAllReplicas(int pktID);
 	bool optimizeDelay();
 	bool optimizeForwards();
+	
+	void determineCommunities();
+	int* LouvainDetermine(vector<double*> contactDurations);
+	double CalculateModularity(vector<double*> contactDurations, int* communities);
+
+
+
+	int  getNeighborAmount(int NID);//use for debugging in hcbf.cc
+	int *getCommunityFromCertainNode(int NID);
+	int getCBC(bool *encLocalCommunity, int *myLocalCommunity, double currentTime);
+	int getNCF(bool *DestCommunity, int NID);
+	PacketEntry* getPacketInfo(int NID,int pktID);
+	int getCommunityID(int NodeID);
 };
 

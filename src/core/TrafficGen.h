@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -84,4 +84,7 @@ public:
 	bool ArePresent(int A, int B,double Time);
 	bool isInactive(int nodeID);
 	int *getAllPresentNodes(double creationTime);
+	void setEpoch(double epoch);
+	double epoch;
+	void increnmenttotalStatPkts(void);
 };

@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -84,6 +84,12 @@ public:
 	virtual void Finalize(void);
 	virtual void NoCostRecv(PacketPool *PP,MAC *mc,PacketBuffer *Bf,int NID,Statistics *St,Settings *S);
 
+	virtual int *getCommunity(double CurrentTime);
+	virtual int getContactsNum(int * destCommunity);
+	virtual int getNCFHelper(bool *destCommunity);
+	virtual int amountOfMyneighbors(void);
+	virtual int getMyCommunityID(void);
+
 protected:
 	PacketPool *pktPool;
 	MAC *Mlayer;
@@ -108,6 +114,8 @@ protected:
 	virtual void SendBufferReq(double CTime,int NID);
 	virtual void ReceptionBufferReq(Header *hd,Packet *pkt,int PID,double CurrentTime);
 	virtual void ReceptionBufferRsp(Header *hd,Packet *pkt,int PID,double CurrentTime);
+
+
 };
 
 

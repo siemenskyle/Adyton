@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -977,6 +977,9 @@ LCandFS::LCandFS(double Time, bool *LC, bool **FS, int PID): Packet(Time, PID)
 	return;
 }
 
+
+
+
 LCandFS::~LCandFS(void)
 {
 	delete HD;
@@ -989,6 +992,31 @@ LCandFS::~LCandFS(void)
 	return;
 }
 
+LCandFSLouvain::LCandFSLouvain(double Time, int *LC, bool **FS, int PID): Packet(Time, PID)
+{
+	this->Type = LC_FS;
+	this->Pktsize = 20;
+	this->localCommunity = LC;
+	this->familiarSets = FS;
+
+	maxN=0;
+	return;
+}
+
+
+
+
+LCandFSLouvain::~LCandFSLouvain(void)
+{
+	delete HD;
+	for(int i = 0; i < maxN; i++)
+	{
+		free(this->familiarSets[i]);
+	}
+	free(this->familiarSets);
+	free(this->localCommunity);
+	return;
+}
 
 BubbleSummary::BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, bool *LC, double LR, double GR, int PID): Packet(Time, PID)
 {
@@ -996,7 +1024,7 @@ BubbleSummary::BubbleSummary(double Time, int numPkts, struct PktDest* sumVec, b
 	this->Pktsize = 30;
 	this->numPackets = numPkts;
 	this->summaryVector = sumVec;
-	this->localCommunity = LC;
+	this->localCommunity = LC; 
 	this->localRank = LR;
 	this->globalRank = GR;
 
@@ -1012,6 +1040,58 @@ BubbleSummary::~BubbleSummary(void)
 	return;
 }
 
+
+
+
+BubbleSummaryLouvain::BubbleSummaryLouvain(double Time, int numPkts, struct PktDest* sumVec, int *LC, double LR, double GR, int PID): Packet(Time, PID)
+{
+	this->Type = BUBBLE_SUMMARY;
+	this->Pktsize = 30;
+	this->numPackets = numPkts;
+	this->summaryVector = sumVec;
+	this->localCommunity = LC; 
+	this->localRank = LR;
+	this->globalRank = GR;
+
+	return;
+}
+
+
+BubbleSummaryLouvain::~BubbleSummaryLouvain(void)
+{
+	delete HD;
+	free(this->summaryVector);
+	free(this->localCommunity);
+	return;
+}
+
+
+
+
+
+
+HCBFSummaryLouvain::HCBFSummaryLouvain(double Time, int numPkts, struct PktDest* sumVec, int *LC, double LR, double GUR,double LUR, int PID): Packet(Time, PID)
+{
+	this->Type = BUBBLE_SUMMARY;
+	this->Pktsize = 30;
+	this->numPackets = numPkts;
+	this->summaryVector = sumVec; 
+	this->localCommunity = LC;
+	this->localRank = LR;
+	this->globalUniqueRank = GUR;
+	this->localUniqueRank=LUR;
+
+	return;
+}
+
+
+HCBFSummaryLouvain::~HCBFSummaryLouvain(void)
+{
+	delete HD;
+	free(this->summaryVector);
+	free(this->localCommunity);
+	return;
+}
 
 AntiPacket::AntiPacket(double Time, int PID): Packet(Time, PID)
 {

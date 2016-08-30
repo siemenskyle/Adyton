@@ -75,7 +75,9 @@
 #define DELEGATION_RT 15
 #define COORD_RT 16
 #define OPTIMAL_RT 17
-#define LAST_ENTRY_RT 18 //this should always be the last one
+#define FLOODING_RT 18
+#define HCBF_RT 19
+#define LAST_ENTRY_RT 20 //this should always be the last one
 
 //Congestion Control Mechanisms
 #define NOCC_CC 1

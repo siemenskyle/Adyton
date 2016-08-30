@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -58,6 +58,17 @@ void PacketEntry::init(int ID, int Dest,int Src, int Itime, int hops, int prev, 
 	this->EncodedPktSource=NULL;
 	this->mimic=-1;
 	this->MaxUtils=NULL;
+
+	this->CBC=0;
+	this->CBC_node=0;
+	this->NCF=0;
+	this->NCF_node=0;
+	this->UI=0;
+	this->UI_node=0;
+	this->LP=0;
+	this->LP_node=0;
+
+	
 	return;
 }
 
@@ -454,3 +465,11 @@ void PacketEntry::UpdateMaxUtil(string utilityMetric, double val)
 	}
 	return;
 }
+
+void PacketEntry::setCBC(int cbc, int node)
+{
+	//this->CBC=cbc;
+	//this->CBC_node=node;
+
+}
+

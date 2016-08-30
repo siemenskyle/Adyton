@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -77,6 +77,8 @@ public:
 	int NID;
 	bool bufferRecording;
 	unsigned int numPacketDrops;
+
+
 
 	PacketBuffer(int ID, Statistics *St, God *G, int BSize, int droppingPolicyID, double TimeToLive);
 	~PacketBuffer();
@@ -164,6 +166,17 @@ public:
 
 	bool isBackgroundTraffic(int pktID);
 	void writeString(string outputData);
+
+	void setMaxCBC(int cbcValue, int cbc_NodeID, int pktID);
+	void setMaxNCF(int ncfValue, int ncf_NodeID, int pktID);
+	void setMaxUI(int UIValue, int UI_NodeID, int pktID);
+	void setMaxLP(int LPValue, int LP_NodeID, int pktID);
+
+	int getMaxUI(int pktID);
+	int getMaxLP(int pktID);
+
+	PacketEntry *getPktInfo(int pktID);
+	int checkAllPkts(int NodeID);
 
 private:
 	bool exists(int *PktList,int PID);

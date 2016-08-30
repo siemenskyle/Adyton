@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -32,6 +32,7 @@
 	#include "God.h"
 #endif
 
+
 class God;
 
 //#define NODE_DEBUG
@@ -55,6 +56,15 @@ Node::Node(int NodeID, PacketPool *pktPool, MAC *mlayer, Statistics *St, Setting
 	this->macLayer = mlayer;
 	this->Stat = St;
 	this->Gd = G;
+	this->MaxUI=0;
+	this->MaxUI_NodeID=0;
+	this->MaxLP=0;
+	this->MaxLP_NodeID=0;
+	this->MaxCBC=0;
+	this->MaxCBC_NodeID=0;
+	this->MaxNCF_NodeID=0;
+	this->counter=0;
+
 
 	if((profileAttribute = this->SimSet->GetProfileAttribute("UniformBuffer")) != "none")
 	{
@@ -78,6 +88,12 @@ Node::Node(int NodeID, PacketPool *pktPool, MAC *mlayer, Statistics *St, Setting
 		case DIRECT_RT:
 		{
 			this->RLogic = new Direct(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
+			break;
+		}
+		case FLOODING_RT:
+		{
+			this->RLogic = new Flooding(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
+//Flooding::donothing();
 			break;
 		}
 		case EPIDEMIC_RT:
@@ -105,6 +121,11 @@ Node::Node(int NodeID, PacketPool *pktPool, MAC *mlayer, Statistics *St, Setting
 			this->RLogic = new BubbleRap(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
 			break;
 		}
+		case HCBF_RT:
+		{
+			this->RLogic = new hcbf(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
+			break;
+		}
 		case SW_RT:
 		{
 			this->RLogic = new SprayWait(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
@@ -128,12 +149,6 @@ Node::Node(int NodeID, PacketPool *pktPool, MAC *mlayer, Statistics *St, Setting
 		case LSFSF_RT:
 		{
 			this->RLogic = new LSFSprayFocus(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
-			break;
-		}
-		case CNF_RT:
-		{
-			/* Compare and Forward is the single-copy version of Compare and Replicate */
-			this->RLogic = new CnR(this->Pool, this->macLayer, this->Buffer, this->ID, this->Stat, this->SimSet, this->Gd);
 			break;
 		}
 		case CNR_RT:
@@ -194,6 +209,7 @@ Node::~Node()
  */
 void Node::ConUpdate(double CTime, int NodeID, bool status, bool history)
 {
+	
 	if(status)
 	{
 		if(!history)
@@ -220,15 +236,16 @@ void Node::ConUpdate(double CTime, int NodeID, bool status, bool history)
  * layer. The packet has not been created yet. At this point, a new packet
  * must be created with the proper attributes.
  */
-void Node::recvFromApp(double CurTime, int Dest)
+void Node::recvFromApp(double CurTime, int Dest)//FFF
 {
 	Packet *tmp;
 	Header *h;
 
-
+	
 	/* Create a new data packet and initialize its header properly */
-	tmp = new DataPacket(CurTime, 0);
-	h = new SimpleHeader(this->ID, Dest, this->ID);
+	tmp = new DataPacket(CurTime, 0);//these 2 parameter is useless
+	h = new SimpleHeader(this->ID, Dest, this->ID);// it is the original code
+	//h = new SimpleHeader(this->ID, this->ID, Dest);
 	h->SetHops(0);
 	h->SetRep(SimSet->getReplicas());
 	tmp->setHeader(h);
@@ -274,3 +291,6 @@ void Node::PrintBuffer(void)
 	Buffer->PrintPkts();
 	printf("-----------------------------\n");
 }
+
+
+

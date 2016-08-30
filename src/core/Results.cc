@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -727,14 +727,16 @@ void Results::printBasicRes(bool writeToFile)
 	TotalPktsDropped = 0;
 	TotalPktsDied = 0;
 	sumHops = 0;
-
+	int notBetterRelay=0;
+	int betterRelay=0;
 	for(i = 0; i < Set->getNN(); i++)
 	{
 		if(Traffic->isInactive(i))
 		{
 			continue;
 		}
-
+		notBetterRelay+= (*Stats)[i]->incrNotForward;
+		betterRelay+= (*Stats)[i]->incrForward++;
 		TotalDelivered += (*Stats)[i]->getTotalDelivered();
 		TotalForw += (*Stats)[i]->getTransmissions();
 		Dups += (*Stats)[i]->getDuplicates();
@@ -744,6 +746,29 @@ void Results::printBasicRes(bool writeToFile)
 		TotalPktsDropped += (*Stats)[i]->getPktsDropped();
 		TotalPktsDied += (*Stats)[i]->getPktsDied();
 	}
+	int totalPktsRemainInBuffer=0;
+	int pktsHavebeenadded=0;
+	int forwardFUI=0;
+	int forwardFLP=0;
+	int forwardCBC=0;
+	int forwardNCF=0;
+	int forwardLUI=0;
+	int forwardLLP=0;
+	int sent=0;
+	
+	for(int i=0;i<Set->getNN();i++)//fff
+	{	
+	//totalPktsRemainInBuffer+=(*Nodes)[i]->RLogic->amountOfMyneighbors();
+	totalPktsRemainInBuffer+=(*Nodes)[i]->Buffer->checkAllPkts(i);
+	pktsHavebeenadded+=(*Stats)[i]->pktadded;
+	forwardFUI+=(*Stats)[i]->forward_FUI;
+	forwardFLP+=(*Stats)[i]->forward_FLP;
+	forwardCBC+=(*Stats)[i]->forward_CBC;
+	forwardNCF+=(*Stats)[i]->forward_NCF;
+	forwardLUI+=(*Stats)[i]->forward_LUI;
+	forwardLLP+=(*Stats)[i]->forward_LLP;
+	sent+=(*Stats)[i]->Dsent;
+	}
 
 	if(Set->getRT() == OPTIMAL_RT)
 	{
@@ -751,7 +776,6 @@ void Results::printBasicRes(bool writeToFile)
 		TotalForw = sumHops;
 		Dups = 0;
 	}
-
 	DRatio = ((double) TotalDelivered) / ((double) Traffic->getTotalStatPkts());
 	avgDelay = sumDelay / ((double) TotalDelivered);
 	avgHops = ((double) sumHops) / ((double) TotalDelivered);
@@ -764,7 +788,14 @@ void Results::printBasicRes(bool writeToFile)
 
 	if(!writeToFile)
 	{
-		printf("\n");
+		printf("# of contacts whose interactive time is zero:%d \n",(*Nodes)[0]->counter);
+		printf("the amount of packets that are directly sent to its destination node:%d\n",sent);
+		printf("times of forwarding due to better UI:%d,\ntimes of forwarding due to better LP: %d,\ntimes of forwarding due to better CBC: %d,\ntimes of forwarding due to better NCF: %d,\ntimes of forwarding due to better UI: %d,\ntimes of forwarding due to better LP: %d\n",forwardFUI,forwardFLP,forwardCBC,forwardNCF,forwardLUI,forwardLLP);
+		printf("pktsHavebeenadded:%d\n",pktsHavebeenadded);
+		printf("totalPktsRemainInBuffer:%d\n",totalPktsRemainInBuffer);
+		printf("betterRelay:%d\n",betterRelay);
+		printf("notBetterRelay:%d, total:%d \n",notBetterRelay,notBetterRelay+betterRelay);
+		printf("TotalDelivered: %d, total pkts amount: %d \n", TotalDelivered,Traffic->getTotalStatPkts());
 		printf("Delivery Ratio: %f\n", DRatio);
 		printf("Overhead Ratio: %f\n", overheadRatio);
 		printf("Delivery Cost: %f\n", deliveryCost);
@@ -777,7 +808,7 @@ void Results::printBasicRes(bool writeToFile)
 		printf("Total Number of Forwards: %lu\n", TotalForw);
 		printf("Total Number of Packet Drops: %lu\n", TotalPktsDropped);
 		printf("Total Number of Packet Timeouts: %lu\n", TotalPktsDied);
-		printf("Total Number of Duplicates: %lu\n", Dups);
+		printf("Total Number of Duplicates: %lu\n", Dups);//its always 0 fff~
 	}
 	else
 	{

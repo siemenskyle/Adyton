@@ -1,6 +1,6 @@
 /*
  *  Adyton: A Network Simulator for Opportunistic Networks
- *  Copyright (C) 2015, 2016  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
+ *  Copyright (C) 2015  Nikolaos Papanikos, Dimitrios-Georgios Akestoridis,
  *  and Evangelos Papapetrou
  *
  *  This file is part of Adyton.
@@ -26,8 +26,8 @@
 	#define ROUTING_H
 	#include "Routing.h"
 #endif
-
-// #define ROUTING_DEBUG
+#define DEBUG
+#define ROUTING_DEBUG
 
 Routing::Routing(PacketPool* PP, MAC* mc, PacketBuffer* Bf,int NID,Statistics *St,Settings *S,God *G)
 {
@@ -39,8 +39,7 @@ Routing::Routing(PacketPool* PP, MAC* mc, PacketBuffer* Bf,int NID,Statistics *S
 	this->Stat=St;
 	this->SimGod=G;
 	this->NCenabled=false;
-	
-	switch(S->getDM())
+	switch(S->getDM())//deletion mechanism
 	{
 		case JUSTTTL_DM:
 		{
@@ -220,6 +219,7 @@ void Routing::ReceptionAntipacketResponse(Header *hd,Packet *pkt,int PID,double 
 
 void Routing::SendDirectPackets(double CTime, int NID)
 {
+	
 	//First send all packets that have NID as destination
 	int *pkts=Buf->getPackets(NID);
 	for(int i=1;i<=pkts[0];i++)
@@ -236,6 +236,7 @@ void Routing::SendDirectPackets(double CTime, int NID)
 			Buf->removePkt(pkts[i]);
 		}
 	}
+	Stat->Dsent+=pkts[0];
 	free(pkts);
 	//for NC enabled protocols
 	if(DM->OffloaderDeletePkt() && this->NCenabled)
@@ -243,7 +244,7 @@ void Routing::SendDirectPackets(double CTime, int NID)
 		DM->CleanBuffer(this->Buf);
 	}
 
-	if(Set->needsBufferInformation())
+	if(Set->needsBufferInformation())//since the default setting for congestion control mechanism is "none", this would return false
 	{
 		SendBufferReq(CTime,NID);
 	}
@@ -267,6 +268,7 @@ void Routing::SendDirectSummary(double CTime, int NID)
 	pktPool->AddPacket(SumPacket);
 	//Send packet to the new contact
 	Mlayer->SendPkt(CTime,this->NodeID,NID,SumPacket->getSize(),SumPacket->getID());
+
 	#ifdef DEBUG
 	printf("%f:Node %d generated a new summary packet (for direct delivery) with ID:%d for Node %d\n",CTime,this->NodeID,SumPacket->getID(),NID);
 	printf("Summary contents(%d):\n",summary[0]);
@@ -451,6 +453,33 @@ void Routing::ReceptionDirectRequest(Header *hd,Packet *pkt,int PID,double Curre
 
 void Routing::SendPacket(double STime, int pktID, int nHop, int RepValue)
 {
-	return;
+	return; 
+}
+
+int *Routing::getCommunity(double CurrentTime)
+{
+	int* temp=NULL;
+	return temp;
+
+
+}
+
+int Routing::getContactsNum(int *destCommunity)
+{
+	return 0;
+
+}
+int Routing::getNCFHelper(bool *destCommunity)
+{
+	return 0;
+
+}
+int Routing::amountOfMyneighbors(void)
+{
+	return 0;
+}
+int Routing::getMyCommunityID(void)
+{
+	return 0;
 }
 
